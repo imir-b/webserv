@@ -4,6 +4,8 @@
 #include <string>
 #include <cstddef>
 
+using namespace std;
+
 class Client
 {
     public:
@@ -12,13 +14,15 @@ class Client
 
         /* Getters */
         int getFd() const;
-        const std::string& getReadBuffer() const;
-        const std::string& getWriteBuffer() const;
+        const string& getReadBuffer() const;
+        const string& getWriteBuffer() const;
         size_t getBytesSent() const;
 
         /* Buffer management */
         void appendReadBuffer(const char *data, size_t length);
-        void appendWriteBuffer(const std::string& data);
+        void appendWriteBuffer(const string& data);
+        void consumeReadBuffer(size_t lenght);
+        void consumeWriteBuffer(size_t lenght);
         void clearReadBuffer();
         void clearWriteBuffer();
 
@@ -28,8 +32,8 @@ class Client
 
     private:
         int fd;
-        std::string readBuffer;
-        std::string writeBuffer; // ajoute une limite aux 2 buffers pour eviter d'ecrire a l'infini des requetes enormes <<<-----
+        string readBuffer;
+        string writeBuffer; // ajoute une limite aux 2 buffers pour eviter d'ecrire a l'infini des requetes enormes <<<-----
         size_t bytesSent;
         bool closeAfterResponse; // oublie pas de m implementer boss pour savoir quand on peut suppr la class ou quand on en a encore besoin <<<<<----
 };

@@ -33,10 +33,4 @@ using namespace std;
 #define CLIENT_ERROR -1
 
 /* Client functions */
-void remove_client(vector<struct pollfd> &fds, map<int, Client> &clients, size_t index);
 int handle_client(Client &client);
-
-/* Server functions */
-int setup_server_socket(void);
-int run_server(int serverSocket);
-

@@ -1,19 +1,20 @@
 
 #include "main.hpp"
-
+#include "server.hpp"
 
 int main()
 {
+    Server server;
     signal(SIGPIPE, SIG_IGN);
 
-    int serverSocket = setup_server_socket();
+    int serverSocket = server.setup();
     if (serverSocket < 0)
         return 1;
 
     cout << "Server is listening on port "
          << PORT << "..." << endl;
 
-    int status = run_server(serverSocket);
+    int status = server.run();
 
     close(serverSocket);
     

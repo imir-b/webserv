@@ -3,80 +3,7 @@
 #include "main.hpp"
 #include "client.hpp"
 
-# pragma region Client class implementation
-
-Client::Client(int fd)
-    : fd(fd), bytesSent(0)
-{
-}
-
-Client::~Client()
-{
-}
-
-int Client::getFd() const
-{
-    return fd;
-}
-
-const std::string& Client::getReadBuffer() const
-{
-    return readBuffer;
-}
-
-const std::string& Client::getWriteBuffer() const
-{
-    return writeBuffer;
-}
-
-size_t Client::getBytesSent() const
-{
-    return bytesSent;
-}
-
-void Client::appendReadBuffer(const char *data, size_t length)
-{
-    readBuffer.append(data, length);
-}
-
-void Client::appendWriteBuffer(const std::string& data)
-{
-    writeBuffer.append(data);
-}
-
-void Client::clearReadBuffer()
-{
-    readBuffer.clear();
-}
-
-void Client::clearWriteBuffer()
-{
-    writeBuffer.clear();
-    bytesSent = 0;
-}
-
-void Client::addBytesSent(size_t bytes)
-{
-    bytesSent += bytes;
-}
-
-void Client::resetBytesSent()
-{
-    bytesSent = 0;
-}
-
-#pragma endregion
-
-/* Close and remove a client */
-void remove_client(vector<struct pollfd> &fds, map<int, Client> &clients, size_t index)
-{
-    int fd = fds[index].fd;
-    close(fd);
-    clients.erase(fd);
-    fds.erase(fds.begin() + index);
-}
-
-/* Receive data from a client and store it in the client buffer */
+/* Receive data from a client and store it in the client read buffer */
 int handle_client(Client &client)
 {
     char buffer[BUFSIZE];
@@ -89,6 +16,9 @@ int handle_client(Client &client)
         if (bytes > 0)
         {
             client.appendReadBuffer(buffer, bytes);
+            cout << "Read buffer client (fd " << client.getFd() << "): ";
+            cout.write(client.getReadBuffer().data(), client.getReadBuffer().size());
+            cout << endl;
             continue;
         }
 
@@ -114,3 +44,71 @@ int handle_client(Client &client)
     }
 }
 
+# pragma region Client class implementation
+
+Client::Client(int fd) : fd(fd), bytesSent(0) {}
+
+Client::~Client(void) {}
+
+int Client::getFd(void) const
+{
+    return fd;
+}
+
+const std::string& Client::getReadBuffer(void) const
+{
+    return readBuffer;
+}
+
+const std::string& Client::getWriteBuffer(void) const
+{
+    return writeBuffer;
+}
+
+size_t Client::getBytesSent(void) const
+{
+    return bytesSent;
+}
+
+void Client::appendReadBuffer(const char *data, size_t length)
+{
+    readBuffer.append(data, length);
+}
+
+void Client::appendWriteBuffer(const std::string& data)
+{
+    writeBuffer.append(data);
+}
+
+void Client::consumeReadBuffer(size_t length)
+{
+    readBuffer.erase(0, length);
+}
+
+void Client::consumeWriteBuffer(size_t length)
+{
+    writeBuffer.erase(0, length);
+}
+
+void Client::clearReadBuffer(void)
+{
+    readBuffer.clear();
+}
+
+void Client::clearWriteBuffer(void)
+{
+    writeBuffer.clear();
+    bytesSent = 0;
+}
+
+void Client::addBytesSent(size_t bytes)
+{
+    bytesSent += bytes;
+}
+
+void Client::resetBytesSent(void)
+{
+    bytesSent = 0;
+}
+
+#pragma endregion
