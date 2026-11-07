@@ -140,7 +140,7 @@ int send_response(int clientSocket)
 /* Process events reported by poll */
 int process_events(vector<struct pollfd> &fds, int serverSocket, map<int, Client> &clients)
 {
-    for (size_t i = 0; i < fds.size(); ) {
+    for (size_t i = 0; i < fds.size(); ) { // séparer les nouvelles connexions du traitement des clients <<<<--------
 
         short events = fds[i].revents;
 

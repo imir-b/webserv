@@ -81,7 +81,7 @@ int handle_client(Client &client)
 {
     char buffer[BUFSIZE];
 
-    while (true)
+    while (true) // ajoute une limite pour eviter detre bloque par un client qui monopolise le programme avec des requetes constantes <<<<<-------
     {
         ssize_t bytes = recv(client.getFd(), buffer,
                          sizeof(buffer), 0);

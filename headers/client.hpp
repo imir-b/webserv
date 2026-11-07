@@ -29,6 +29,7 @@ class Client
     private:
         int fd;
         std::string readBuffer;
-        std::string writeBuffer;
+        std::string writeBuffer; // ajoute une limite aux 2 buffers pour eviter d'ecrire a l'infini des requetes enormes <<<-----
         size_t bytesSent;
+        bool closeAfterResponse; // oublie pas de m implementer boss pour savoir quand on peut suppr la class ou quand on en a encore besoin <<<<<----
 };

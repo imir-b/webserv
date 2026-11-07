@@ -8,24 +8,27 @@ NAME        = server
 # --- compiler & flags ---
 CXX         = c++
 CXXFLAGS    = -Wall -Werror -Wextra -std=c++98
+CPPFLAGS    = -I$(INC_DIR)
+DEPFLAGS    = -MMD -MP
 
 # --- directories ---
 SRC_DIR     = srcs
 OBJ_DIR     = objs
+INC_DIR     = headers
 
 # --- files ---
 SRC         = main.cpp client.cpp server.cpp
 OBJ         = $(addprefix $(OBJ_DIR)/, $(SRC:.cpp=.o))
-HPP         = $(wildcard $(SRC_DIR)/*.hpp)
+DEP         = $(OBJ:.o=.d)
 
 # --- rules ---
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME)
+	$(CXX) $(CXXFLAGS) $(OBJ) -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HPP) | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
@@ -36,6 +39,10 @@ clean:
 fclean: clean
 	rm -f $(NAME)
 
-re: fclean all
+re:
+	$(MAKE) fclean
+	$(MAKE) all
+
+-include $(DEP)
 
 .PHONY: all clean fclean re
