@@ -1,34 +1,6 @@
 /**
  * ## TO-DO LIST ##
  *
- * 1. GESTION NON BLOQUANTE DES SOCKETS
- *     - Comprendre fcntl(), O_NONBLOCK
- *     - Comprendre EAGAIN et EWOULDBLOCK
- *     - Passer les sockets serveur et clients en non-bloquant
- *     - Gérer les erreurs sans arrêter tout le serveur
- *
- * 2. AMÉLIORER LA BOUCLE POLL()
- *     - Surveiller POLLIN et POLLOUT
- *     - Gérer les lectures et écritures partielles
- *     - Gérer les déconnexions et les timeouts
- *     - Éviter les appels bloquants
- *
- * 3. GESTION DES CLIENTS
- *     - Créer une classe/structure Client
- *     - Ajouter un buffer de réception par client
- *     - Ajouter un buffer d'envoi par client
- *     - Conserver l'état de chaque connexion
- *     - Nettoyer correctement les ressources
- *
- * 4. PARSING DES REQUÊTES HTTP
- *     - Parser la request line (méthode, URI, version)
- *     - Parser les headers HTTP
- *     - Détecter la fin des headers (\r\n\r\n)
- *     - Gérer Content-Length
- *     - Gérer Transfer-Encoding: chunked
- *     - Gérer les requêtes incomplètes ou invalides
- *     - Limiter la taille des requêtes et des bodies
- *
  * 5. CONSTRUCTION DES RÉPONSES HTTP
  *     - Créer une classe HttpResponse
  *     - Générer les status codes (200, 404, 403, 500...)

@@ -3,50 +3,7 @@
 #include "main.hpp"
 #include "client.hpp"
 
-/* Receive data from a client and store it in the client read buffer */
-int handle_client(Client &client)
-{
-    char buffer[BUFSIZE];
-
-    while (true) // ajoute une limite pour eviter detre bloque par un client qui monopolise le programme avec des requetes constantes <<<<<-------
-    {
-        ssize_t bytes = recv(client.getFd(), buffer,
-                         sizeof(buffer), 0);
-
-        if (bytes > 0)
-        {
-            client.appendReadBuffer(buffer, bytes);
-            cout << "Read buffer client (fd " << client.getFd() << "): ";
-            cout.write(client.getReadBuffer().data(), client.getReadBuffer().size());
-            cout << endl;
-            continue;
-        }
-
-        /* All data has been received, client disconnected */
-        if (bytes == 0)
-        {
-            cout << "Client disconnected (fd "
-                 << client.getFd() << ")" << endl;
-
-            return CLIENT_DISCONNECTED;
-        }
-
-        /* Call interrupted by a signal */
-        if (errno == EINTR)
-            continue;
-
-        /* All disponible data has been receive */
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return CLIENT_CONNECTED;
-
-        perror("recv");
-        return CLIENT_ERROR;
-    }
-}
-
-# pragma region Client class implementation
-
-Client::Client(int fd) : fd(fd), bytesSent(0) {}
+Client::Client(int fd) : fd(fd), bytesSent(0), closeAfterResponse(false) {}
 
 Client::~Client(void) {}
 
@@ -70,6 +27,16 @@ size_t Client::getBytesSent(void) const
     return bytesSent;
 }
 
+Request& Client::getRequest()
+{
+    return request;
+}
+
+const Request& Client::getRequest() const
+{
+    return request;
+}
+
 void Client::appendReadBuffer(const char *data, size_t length)
 {
     readBuffer.append(data, length);
@@ -82,7 +49,10 @@ void Client::appendWriteBuffer(const std::string& data)
 
 void Client::consumeReadBuffer(size_t length)
 {
-    readBuffer.erase(0, length);
+    if (length >= readBuffer.size())
+        readBuffer.clear();
+    else
+        readBuffer.erase(0, length);
 }
 
 void Client::consumeWriteBuffer(size_t length)
@@ -111,4 +81,12 @@ void Client::resetBytesSent(void)
     bytesSent = 0;
 }
 
-#pragma endregion
+void Client::setCloseAfterResponse(bool close)
+{
+    closeAfterResponse = close;
+}
+
+bool Client::shouldCloseAfterResponse() const
+{
+    return closeAfterResponse;
+}
