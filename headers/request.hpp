@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <iosfwd>
 
 using namespace std;
 
@@ -41,4 +42,5 @@ class Request {
         bool hasHeader(const string &name) const;
         void reset();
 
+    friend ostream &operator<<(ostream &os, Request const &request);
 };

@@ -37,7 +37,11 @@ class Server {
         int acceptClient();
         int handleClient(Client &client);
         int processRequest(Client &client);
+        int handleGet(Client &client);
+        int handlePost(Client &client);
+        int handleDelete(Client &client);
+        int handleMethodNotAllowed(Client &client);
         int sendResponse(Client &client);
-        void sendErrorBadRequest();
+        int sendErrorBadRequest(Client &client);
         void removeClient(size_t index);
 };

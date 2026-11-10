@@ -17,7 +17,7 @@ OBJ_DIR     = objs
 INC_DIR     = headers
 
 # --- files ---
-SRC         = main.cpp client.cpp server.cpp request.cpp requestParser.cpp
+SRC			= main.cpp client.cpp server.cpp request.cpp requestParser.cpp response.cpp
 OBJ         = $(addprefix $(OBJ_DIR)/, $(SRC:.cpp=.o))
 DEP         = $(OBJ:.o=.d)
 

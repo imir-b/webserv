@@ -1,9 +1,44 @@
 
+#include <ostream>
+
 #include "request.hpp"
+
+/* Constructor */
 
 Request::Request() : status(0) {}
 
 Request::~Request() {}
+
+ostream &operator<<(ostream &os, const Request &request)
+{
+    os << "# HTTP REQUEST" << endl;
+
+    os << "Method: " << request.method << endl;
+    os << "URI: " << request.uri << endl;
+    os << "HTTP Version: " << request.httpVersion << endl;
+
+    os << "\nHeaders:" << endl;
+
+    if (request.headers.empty())
+        os << "  <No headers>" << endl;
+
+    for (map<string, string>::const_iterator it = request.headers.begin();
+         it != request.headers.end(); ++it)
+    {
+        os << "  " << it->first << ": " << it->second << endl;
+    }
+
+    os << "\nBody (" << request.body.size() << " bytes):" << endl;
+
+    if (request.body.empty())
+        os << "  <Empty>" << endl;
+    else
+        os << request.body << endl;
+
+    os << endl;
+
+    return os;
+}
 
 const string& Request::getMethod() const
 {

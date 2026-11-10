@@ -135,9 +135,7 @@ int RequestParser::validateHeaders(Request& request)
 }
 
 /* Parse and validate the Content-Length header */
-int RequestParser::parseContentLength(
-    const string& value,
-    size_t& length)
+int RequestParser::parseContentLength(const string& value, size_t& length)
 {
     if (value.empty())
         return INVALID_REQUEST;
@@ -161,11 +159,7 @@ int RequestParser::parseContentLength(
 }
 
 /* Parse the request headers */
-int RequestParser::parseHeaders(
-    const string& buffer,
-    size_t start,
-    size_t end,
-    Request& request)
+int RequestParser::parseHeaders(const string& buffer, size_t start, size_t end, Request& request)
 {
     size_t pos = start;
 
@@ -220,17 +214,14 @@ int RequestParser::parseHeaders(
 }
 
 /* Main function to parse the request and validate its grammar */
-int RequestParser::parse(
-    const string& buffer,
-    Request& request,
-    size_t& consumed)
+int RequestParser::parse(const string& buffer, Request& request, size_t& consumed)
 {
     consumed = 0;
 
     /* Find the end of the headers */
     size_t headerEnd = buffer.find("\r\n\r\n");
 
-    if (headerEnd == string::npos)
+    if (headerEnd == string::npos)  
         return INCOMPLETE_REQUEST;
 
     /* Find the request line */

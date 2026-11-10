@@ -3,6 +3,7 @@
 #include "main.hpp"
 #include "client.hpp"
 #include "server.hpp"
+#include "response.hpp"
 
 /* Set the socket to non-blocking */
 int set_nonblocking(int fd)
@@ -128,22 +129,174 @@ int Server::processNewConnections(void)
     return 0;
 }
 
-void Server::sendErrorBadRequest(void) {
+/* Prepare a 400 Bad Request response */
+int Server::sendErrorBadRequest(Client &client)
+{
+    Response response;
 
+    response.setStatusCode(HTTP_BAD_REQUEST);
+    response.setHeader("Content-Type", "text/plain");
+    response.setHeader("Connection", "close");
+    response.setBody("400 Bad Request\n");
+
+    client.appendWriteBuffer(response.serialize());
+    client.setCloseAfterResponse(true);
+
+    return 0;
 }
-
 /* Send the response in writeBuffer to the client socket */
 int Server::sendResponse(Client &client)
 {
-    (void) client;
+    const int MAX_SENDS = 10;
+    int sendCount = 0;
+
+    const string& buffer = client.getWriteBuffer();
+
+    while (client.getBytesSent() < buffer.size()
+           && sendCount < MAX_SENDS)
+    {
+        size_t remaining = buffer.size() - client.getBytesSent();
+
+        ssize_t bytes = send(
+            client.getFd(),
+            buffer.data() + client.getBytesSent(),
+            remaining,
+            0
+        );
+
+        /* Data successfully sent */
+        if (bytes > 0)
+        {
+            client.addBytesSent(bytes);
+            ++sendCount;
+            continue;
+        }
+
+        /* No progress */
+        if (bytes == 0)
+            return -1;
+
+        /* Call interrupted by a signal */
+        if (errno == EINTR)
+            continue;
+
+        /* Socket temporarily unavailable */
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return 0;
+
+        perror("send");
+        return -1;
+    }
+
+    /* Entire response has been sent */
+    if (client.getBytesSent() == buffer.size())
+        client.clearWriteBuffer();
+
+    return 0;
+}
+
+/* Handle DELETE request */
+int Server::handleDelete(Client &client) // a implementer <<<---
+{
+    (void)client;
+
+    return 0;
+}
+
+/* Handle GET request */
+int Server::handleGet(Client &client)
+{
+    const Request& request = client.getRequest();
+    Response response;
+
+    if (request.getUri() == "/")
+    {
+        response.setStatusCode(HTTP_OK);
+        response.setBody("Hello World!\n");
+    }
+    else
+    {
+        response.setStatusCode(HTTP_NOT_FOUND);
+        response.setBody("Not Found\n");
+    }
+
+    response.setHeader("Content-Type", "text/plain");
+    response.setHeader("Connection", "close");
+
+    client.appendWriteBuffer(response.serialize());
+    client.setCloseAfterResponse(true);
+
+    return 0;
+}
+
+/* Handle POST request */
+int Server::handlePost(Client &client)
+{
+    const Request& request = client.getRequest();
+    Response response;
+
+    response.setStatusCode(HTTP_OK);
+    response.setHeader("Content-Type", "text/plain");
+    response.setHeader("Connection", "close");
+
+    response.setBody("POST received:\n" + request.getBody());
+
+    client.appendWriteBuffer(response.serialize());
+    client.setCloseAfterResponse(true);
+
+    return 0;
+}
+
+/* Handle DELETE request */
+int Server::handleDelete(Client &client)
+{
+    Response response;
+
+    response.setStatusCode(HTTP_NOT_IMPLEMENTED);
+    response.setHeader("Content-Type", "text/plain");
+    response.setHeader("Connection", "close");
+
+    response.setBody("DELETE is not implemented yet\n");
+
+    client.appendWriteBuffer(response.serialize());
+    client.setCloseAfterResponse(true);
+
+    return 0;
+}
+
+/* Handle unsupported HTTP method */
+int Server::handleMethodNotAllowed(Client &client)
+{
+    Response response;
+
+    response.setStatusCode(HTTP_METHOD_NOT_ALLOWED);
+    response.setHeader("Content-Type", "text/plain");
+    response.setHeader("Connection", "close");
+    response.setHeader("Allow", "GET, POST, DELETE");
+
+    response.setBody("Method Not Allowed\n");
+
+    client.appendWriteBuffer(response.serialize());
+    client.setCloseAfterResponse(true);
+
     return 0;
 }
 
 /* Process the client's request and prepare the HTTP response */
 int Server::processRequest(Client &client)
 {
-    (void) client;
-    return 0;
+    const Request& request = client.getRequest();
+
+    if (request.getMethod() == "GET")
+        return handleGet(client);
+
+    if (request.getMethod() == "POST")
+        return handlePost(client);
+
+    if (request.getMethod() == "DELETE")
+        return handleDelete(client);
+
+    return handleMethodNotAllowed(client);
 }
 
 /* Process existing client socket */
@@ -154,9 +307,13 @@ bool Server::processClientEvent(size_t index)
     short events = fds[index].revents;
 
     if (it == clients.end())
-        return false;
+    {
+        removeClient(index);
+        return true;
+    }
 
     Client *client = &(it->second);
+    bool peerClosed = false;
 
     /* Client socket: error */
     if (events & (POLLERR | POLLNVAL))
@@ -165,39 +322,89 @@ bool Server::processClientEvent(size_t index)
         return true;
     }
 
-    /* Client socket: data available */
-    if (events & POLLIN)
+    /* Client socket: data available or disconnected */
+    if (events & (POLLIN | POLLHUP))
     {
         int ret = handleClient(*client);
 
-        if (ret == CLIENT_DISCONNECTED || ret == CLIENT_ERROR) // Attention à la déconnexion avant le parsing <<<---
+        if (ret == CLIENT_ERROR)
         {
             removeClient(index);
             return true;
         }
+
+        /* Client has closed its sending side */
+        if (ret == CLIENT_DISCONNECTED || (events & POLLHUP))
+            peerClosed = true;
 
         /* Parse client's request */
         while (!client->getReadBuffer().empty())
         {
             size_t consumed = 0;
 
-            int ret = requestParser.parse(client->getReadBuffer(), client->getRequest(), consumed);
+            int parseResult = requestParser.parse(
+                client->getReadBuffer(),
+                client->getRequest(),
+                consumed
+            );
 
-            if (ret == INCOMPLETE_REQUEST)
-                break;
-
-            if (ret == INVALID_REQUEST)
+            if (parseResult == INCOMPLETE_REQUEST)
             {
-                // préparer une réponse HTTP 400 Bad Request; définir si la connexion doit être fermée après cette réponse; activer POLLOUT pour envoyer la réponse <<<---
+                /* Client disconnected before completing the request */
+                if (peerClosed)
+                {
+                    if (sendErrorBadRequest(*client) < 0)
+                    {
+                        removeClient(index);
+                        return true;
+                    }
+
+                    fds[index].events |= POLLOUT;
+                }
+
                 break;
             }
+
+            if (parseResult == INVALID_REQUEST || consumed == 0)
+            {
+                /* Prepare a 400 Bad Request response */
+                if (sendErrorBadRequest(*client) < 0)
+                {
+                    removeClient(index);
+                    return true;
+                }
+
+                fds[index].events |= POLLOUT;
+                break;
+            }
+
+            cout << client->getRequest() << endl;
 
             client->consumeReadBuffer(consumed);
 
             if (processRequest(*client) < 0)
-                return false;
+            {
+                removeClient(index);
+                return true;
+            }
 
-            // Attention : si une réponse est déjà en attente d'envoi, il faut gérer correctement le pipeline HTTP. <<<---
+            /* Close after response if client has disconnected */
+            if (peerClosed)
+                client->setCloseAfterResponse(true);
+
+            /* Enable POLLOUT when response is ready */
+            if (!client->getWriteBuffer().empty())
+                fds[index].events |= POLLOUT;
+
+            /* One request per connection for now */
+            break;
+        }
+
+        /* No request to process and client disconnected */
+        if (peerClosed && client->getWriteBuffer().empty())
+        {
+            removeClient(index);
+            return true;
         }
     }
 
@@ -223,7 +430,7 @@ bool Server::processClientEvent(size_t index)
     }
 
     /* Client socket: disconnected */
-    if (events & POLLHUP)
+    if (peerClosed && client->getWriteBuffer().empty())
     {
         removeClient(index);
         return true;
