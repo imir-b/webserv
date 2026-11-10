@@ -38,6 +38,9 @@ class Server {
         int run();
         int processEvents();
         bool processClientEvent(size_t index);
+        bool processClientRead(size_t index, Client &client, bool &peerClosed);
+        bool processClientWrite(size_t index, Client &client);
+        bool processClientRequest(size_t index, Client &client, bool peerClosed);
         int processNewConnections();
         int acceptClient();
         int handleClient(Client &client);

@@ -195,14 +195,6 @@ int Server::sendResponse(Client &client)
     return 0;
 }
 
-/* Handle DELETE request */
-int Server::handleDelete(Client &client) // a implementer <<<---
-{
-    (void)client;
-
-    return 0;
-}
-
 /* Handle GET request */
 int Server::handleGet(Client &client)
 {
@@ -248,7 +240,7 @@ int Server::handlePost(Client &client)
 }
 
 /* Handle DELETE request */
-int Server::handleDelete(Client &client)
+int Server::handleDelete(Client &client) // This is not implemented yet <<<---
 {
     Response response;
 
@@ -257,24 +249,6 @@ int Server::handleDelete(Client &client)
     response.setHeader("Connection", "close");
 
     response.setBody("DELETE is not implemented yet\n");
-
-    client.appendWriteBuffer(response.serialize());
-    client.setCloseAfterResponse(true);
-
-    return 0;
-}
-
-/* Handle unsupported HTTP method */
-int Server::handleMethodNotAllowed(Client &client)
-{
-    Response response;
-
-    response.setStatusCode(HTTP_METHOD_NOT_ALLOWED);
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("Connection", "close");
-    response.setHeader("Allow", "GET, POST, DELETE");
-
-    response.setBody("Method Not Allowed\n");
 
     client.appendWriteBuffer(response.serialize());
     client.setCloseAfterResponse(true);
@@ -299,12 +273,141 @@ int Server::processRequest(Client &client)
     return handleMethodNotAllowed(client);
 }
 
+/* Handle unsupported HTTP method */
+int Server::handleMethodNotAllowed(Client &client)
+{
+    Response response;
+
+    response.setStatusCode(HTTP_METHOD_NOT_ALLOWED);
+    response.setHeader("Content-Type", "text/plain");
+    response.setHeader("Connection", "close");
+    response.setHeader("Allow", "GET, POST, DELETE");
+
+    response.setBody("Method Not Allowed\n");
+
+    client.appendWriteBuffer(response.serialize());
+    client.setCloseAfterResponse(true);
+
+    return 0;
+}
+
+/* Parse and process the client's HTTP request */
+bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
+{
+    while (!client.getReadBuffer().empty())
+    {
+        size_t consumed = 0;
+
+        int ret = requestParser.parse(
+            client.getReadBuffer(),
+            client.getRequest(),
+            consumed
+        );
+
+        if (ret == INCOMPLETE_REQUEST)
+        {
+            /* Client disconnected before completing the request */
+            if (peerClosed)
+            {
+                if (sendErrorBadRequest(client) < 0)
+                {
+                    removeClient(index);
+                    return true;
+                }
+
+                fds[index].events |= POLLOUT;
+            }
+
+            break;
+        }
+
+        if (ret == INVALID_REQUEST || consumed == 0)
+        {
+            /* Prepare a 400 Bad Request response */
+            if (sendErrorBadRequest(client) < 0)
+            {
+                removeClient(index);
+                return true;
+            }
+
+            fds[index].events |= POLLOUT;
+            break;
+        }
+
+        cout << client.getRequest() << endl;
+
+        client.consumeReadBuffer(consumed);
+
+        if (processRequest(client) < 0)
+        {
+            removeClient(index);
+            return true;
+        }
+
+        /* Close after response if client has disconnected */
+        if (peerClosed)
+            client.setCloseAfterResponse(true);
+
+        /* Enable POLLOUT when response is ready */
+        if (!client.getWriteBuffer().empty())
+            fds[index].events |= POLLOUT;
+
+        /* One request per connection for now */
+        break;
+    }
+
+    return false;
+}
+
+/* Send response data to the client */
+bool Server::processClientWrite(size_t index, Client &client)
+{
+    if (sendResponse(client) < 0)
+    {
+        removeClient(index);
+        return true;
+    }
+
+    /* All response data has been sent */
+    if (client.getWriteBuffer().empty())
+    {
+        fds[index].events &= ~POLLOUT;
+
+        if (client.shouldCloseAfterResponse())
+        {
+            removeClient(index);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/* Receive data from an existing client */
+bool Server::processClientRead(size_t index, Client &client, bool &peerClosed)
+{
+    int ret = handleClient(client);
+
+    if (ret == CLIENT_ERROR)
+    {
+        removeClient(index);
+        return true;
+    }
+
+    /* Client has closed its sending side */
+    if (ret == CLIENT_DISCONNECTED || (fds[index].revents & POLLHUP))
+        peerClosed = true;
+
+    return processClientRequest(index, client, peerClosed);
+}
+
 /* Process existing client socket */
 bool Server::processClientEvent(size_t index)
 {
     int fd = fds[index].fd;
-    map<int, Client>::iterator it = clients.find(fd);
     short events = fds[index].revents;
+
+    map<int, Client>::iterator it = clients.find(fd);
 
     if (it == clients.end())
     {
@@ -325,108 +428,15 @@ bool Server::processClientEvent(size_t index)
     /* Client socket: data available or disconnected */
     if (events & (POLLIN | POLLHUP))
     {
-        int ret = handleClient(*client);
-
-        if (ret == CLIENT_ERROR)
-        {
-            removeClient(index);
+        if (processClientRead(index, *client, peerClosed))
             return true;
-        }
-
-        /* Client has closed its sending side */
-        if (ret == CLIENT_DISCONNECTED || (events & POLLHUP))
-            peerClosed = true;
-
-        /* Parse client's request */
-        while (!client->getReadBuffer().empty())
-        {
-            size_t consumed = 0;
-
-            int parseResult = requestParser.parse(
-                client->getReadBuffer(),
-                client->getRequest(),
-                consumed
-            );
-
-            if (parseResult == INCOMPLETE_REQUEST)
-            {
-                /* Client disconnected before completing the request */
-                if (peerClosed)
-                {
-                    if (sendErrorBadRequest(*client) < 0)
-                    {
-                        removeClient(index);
-                        return true;
-                    }
-
-                    fds[index].events |= POLLOUT;
-                }
-
-                break;
-            }
-
-            if (parseResult == INVALID_REQUEST || consumed == 0)
-            {
-                /* Prepare a 400 Bad Request response */
-                if (sendErrorBadRequest(*client) < 0)
-                {
-                    removeClient(index);
-                    return true;
-                }
-
-                fds[index].events |= POLLOUT;
-                break;
-            }
-
-            cout << client->getRequest() << endl;
-
-            client->consumeReadBuffer(consumed);
-
-            if (processRequest(*client) < 0)
-            {
-                removeClient(index);
-                return true;
-            }
-
-            /* Close after response if client has disconnected */
-            if (peerClosed)
-                client->setCloseAfterResponse(true);
-
-            /* Enable POLLOUT when response is ready */
-            if (!client->getWriteBuffer().empty())
-                fds[index].events |= POLLOUT;
-
-            /* One request per connection for now */
-            break;
-        }
-
-        /* No request to process and client disconnected */
-        if (peerClosed && client->getWriteBuffer().empty())
-        {
-            removeClient(index);
-            return true;
-        }
     }
 
     /* Client socket: data can be sent */
     if (events & POLLOUT)
     {
-        if (sendResponse(*client) < 0)
-        {
-            removeClient(index);
+        if (processClientWrite(index, *client))
             return true;
-        }
-
-        if (client->getWriteBuffer().empty())
-        {
-            fds[index].events &= ~POLLOUT;
-
-            if (client->shouldCloseAfterResponse())
-            {
-                removeClient(index);
-                return true;
-            }
-        }
     }
 
     /* Client socket: disconnected */
