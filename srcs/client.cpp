@@ -1,11 +1,15 @@
 
-/* Header files */
+/* HPP headers */
 #include "main.hpp"
 #include "client.hpp"
+
+/* Constructor */
 
 Client::Client(int fd) : fd(fd), bytesSent(0), closeAfterResponse(false) {}
 
 Client::~Client(void) {}
+
+/* Getters */
 
 int Client::getFd(void) const
 {
@@ -36,6 +40,8 @@ const Request& Client::getRequest() const
 {
     return request;
 }
+
+/* Buffer management methods */
 
 void Client::appendReadBuffer(const char *data, size_t length)
 {
@@ -71,6 +77,8 @@ void Client::clearWriteBuffer(void)
     bytesSent = 0;
 }
 
+/* Bytes sent management methods */
+
 void Client::addBytesSent(size_t bytes)
 {
     bytesSent += bytes;
@@ -80,6 +88,8 @@ void Client::resetBytesSent(void)
 {
     bytesSent = 0;
 }
+
+/* Close after response management methods */
 
 void Client::setCloseAfterResponse(bool close)
 {

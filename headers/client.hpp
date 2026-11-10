@@ -1,9 +1,10 @@
-
 #pragma once
 
+/* C++ includes */
 #include <string>
 #include <cstddef>
 
+/* HPP headers */
 #include "request.hpp"
 
 using namespace std;
@@ -11,15 +12,18 @@ using namespace std;
 class Client
 {
     private:
+        /* Attributes */
         int fd;
         string readBuffer;
         string writeBuffer; // ajoute une limite aux 2 buffers pour eviter d'ecrire a l'infini des requetes enormes <<<---
         size_t bytesSent;
         bool closeAfterResponse;
 
+        /* Request of the client */
         Request request;
 
     public:
+        /* Constructor */
         Client(int fd);
         ~Client();
 

@@ -1,7 +1,10 @@
-#include "response.hpp"
 
+/* C++ includes */
 #include <sstream>
 #include <cctype>
+
+/* HPP headers */
+#include "response.hpp"
 
 /* Constructor */
 Response::Response() : statusCode(HTTP_OK) {}

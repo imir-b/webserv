@@ -1,5 +1,5 @@
 
-/* Header files */
+/* HPP headers */
 #include "main.hpp"
 #include "client.hpp"
 #include "server.hpp"

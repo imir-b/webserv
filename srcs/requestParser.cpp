@@ -1,11 +1,15 @@
 
+/* C++ includes */
 #include <string>
 #include <cctype>
 #include <limits>
 
+/* HPP headers */
 #include "requestParser.hpp"
 
 using namespace std;
+
+/* Constructor */
 
 RequestParser::RequestParser() {}
 

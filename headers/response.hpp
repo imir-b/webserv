@@ -1,10 +1,12 @@
 #pragma once
 
+/* C++ includes */
 #include <map>
 #include <string>
 
 using namespace std;
 
+/* Status code defines */
 enum HttpStatusCode
 {
     HTTP_OK = 200,
@@ -26,13 +28,16 @@ class Response
         string body;
 
     public:
+        /* Constructor */
         Response();
         ~Response();
 
+        /* Setters */
         void setStatusCode(int code);
         void setHeader(const string& name, const string& value);
         void setBody(const string& body);
 
+        /* Methods */
         string getReasonPhrase() const;
         string serialize() const;
 };

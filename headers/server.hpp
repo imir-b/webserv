@@ -12,6 +12,7 @@
 #include <cctype>
 #include <algorithm>
 
+/* HPP headers */
 #include "client.hpp"
 #include "requestParser.hpp"
 
@@ -19,16 +20,20 @@ using namespace std;
 
 class Server {
     private:
+        /* Attributes */
         int serverSocket;
         vector<struct pollfd> fds;
         map<int, Client> clients;
 
+        /* Request Parser class to manage request parsing */
         RequestParser requestParser;
 
     public:
+        /* Constructor */
         Server();
         ~Server();
 
+        /* Methods */
         int setup();
         int run();
         int processEvents();

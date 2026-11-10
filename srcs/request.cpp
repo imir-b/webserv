@@ -1,6 +1,8 @@
 
+/* C++ includes */
 #include <ostream>
 
+/* HPP headers */
 #include "request.hpp"
 
 /* Constructor */
