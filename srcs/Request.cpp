@@ -3,7 +3,7 @@
 #include <ostream>
 
 /* HPP headers */
-#include "request.hpp"
+#include "Request.hpp"
 
 /* Constructor */
 

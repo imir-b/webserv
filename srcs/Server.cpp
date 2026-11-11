@@ -1,9 +1,9 @@
 
 /* HPP headers */
-#include "main.hpp"
-#include "client.hpp"
-#include "server.hpp"
-#include "response.hpp"
+#include "Main.hpp"
+#include "Client.hpp"
+#include "Server.hpp"
+#include "Response.hpp"
 
 /* Set the socket to non-blocking */
 int set_nonblocking(int fd)
@@ -43,12 +43,12 @@ int Server::handleClient(Client &client)
 
     while (readCount < MAX_READS)
     {
-        ssize_t bytes = recv(client.getFd(), buffer,
-                         sizeof(buffer), 0);
+        ssize_t bytes = recv(client.getFd(), buffer, sizeof(buffer), 0);
 
         if (bytes > 0)
         {
-            client.appendReadBuffer(buffer, bytes);
+            if (client.appendReadBuffer(buffer, bytes))
+                return CLIENT_ERROR; // A remplacer plus tard par une gestion HTTP 413 <<<---
             cout << "Read buffer client (fd " << client.getFd() << "): ";
             cout.write(client.getReadBuffer().data(), client.getReadBuffer().size());
             cout << endl;
@@ -139,7 +139,8 @@ int Server::sendErrorBadRequest(Client &client)
     response.setHeader("Connection", "close");
     response.setBody("400 Bad Request\n");
 
-    client.appendWriteBuffer(response.serialize());
+    if (!client.appendWriteBuffer(response.serialize()))
+        return 1;
     client.setCloseAfterResponse(true);
 
     return 0;
@@ -195,102 +196,6 @@ int Server::sendResponse(Client &client)
     return 0;
 }
 
-/* Handle GET request */
-int Server::handleGet(Client &client)
-{
-    const Request& request = client.getRequest();
-    Response response;
-
-    if (request.getUri() == "/")
-    {
-        response.setStatusCode(HTTP_OK);
-        response.setBody("Hello World!\n");
-    }
-    else
-    {
-        response.setStatusCode(HTTP_NOT_FOUND);
-        response.setBody("Not Found\n");
-    }
-
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("Connection", "close");
-
-    client.appendWriteBuffer(response.serialize());
-    client.setCloseAfterResponse(true);
-
-    return 0;
-}
-
-/* Handle POST request */
-int Server::handlePost(Client &client)
-{
-    const Request& request = client.getRequest();
-    Response response;
-
-    response.setStatusCode(HTTP_OK);
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("Connection", "close");
-
-    response.setBody("POST received:\n" + request.getBody());
-
-    client.appendWriteBuffer(response.serialize());
-    client.setCloseAfterResponse(true);
-
-    return 0;
-}
-
-/* Handle DELETE request */
-int Server::handleDelete(Client &client) // This is not implemented yet <<<---
-{
-    Response response;
-
-    response.setStatusCode(HTTP_NOT_IMPLEMENTED);
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("Connection", "close");
-
-    response.setBody("DELETE is not implemented yet\n");
-
-    client.appendWriteBuffer(response.serialize());
-    client.setCloseAfterResponse(true);
-
-    return 0;
-}
-
-/* Process the client's request and prepare the HTTP response */
-int Server::processRequest(Client &client)
-{
-    const Request& request = client.getRequest();
-
-    if (request.getMethod() == "GET")
-        return handleGet(client);
-
-    if (request.getMethod() == "POST")
-        return handlePost(client);
-
-    if (request.getMethod() == "DELETE")
-        return handleDelete(client);
-
-    return handleMethodNotAllowed(client);
-}
-
-/* Handle unsupported HTTP method */
-int Server::handleMethodNotAllowed(Client &client)
-{
-    Response response;
-
-    response.setStatusCode(HTTP_METHOD_NOT_ALLOWED);
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("Connection", "close");
-    response.setHeader("Allow", "GET, POST, DELETE");
-
-    response.setBody("Method Not Allowed\n");
-
-    client.appendWriteBuffer(response.serialize());
-    client.setCloseAfterResponse(true);
-
-    return 0;
-}
-
 /* Parse and process the client's HTTP request */
 bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
 {
@@ -336,17 +241,12 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
 
         cout << client.getRequest() << endl;
 
+        Response response = requestHandler.process(client.getRequest());
+        
         client.consumeReadBuffer(consumed);
-
-        if (processRequest(client) < 0)
-        {
-            removeClient(index);
-            return true;
-        }
-
-        /* Close after response if client has disconnected */
-        if (peerClosed)
-            client.setCloseAfterResponse(true);
+        if (!client.appendWriteBuffer(response.serialize()))
+            return false;
+        client.setCloseAfterResponse(true);
 
         /* Enable POLLOUT when response is ready */
         if (!client.getWriteBuffer().empty())

@@ -18,7 +18,7 @@
 #include <utility>
 
 /* HPP headers */
-#include "client.hpp"
+#include "Client.hpp"
 
 using namespace std;
 

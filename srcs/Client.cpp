@@ -1,7 +1,7 @@
 
 /* HPP headers */
-#include "main.hpp"
-#include "client.hpp"
+#include "Main.hpp"
+#include "Client.hpp"
 
 /* Constructor */
 
@@ -43,14 +43,24 @@ const Request& Client::getRequest() const
 
 /* Buffer management methods */
 
-void Client::appendReadBuffer(const char *data, size_t length)
+bool Client::appendReadBuffer(const char *data, size_t length)
 {
+    if (readBuffer.size() > MAX_READ_BUFFER_SIZE ||
+        length > MAX_READ_BUFFER_SIZE - readBuffer.size())
+        return false;
+
     readBuffer.append(data, length);
+    return true;
 }
 
-void Client::appendWriteBuffer(const std::string& data)
+bool Client::appendWriteBuffer(const string& data)
 {
+    if (writeBuffer.size() > MAX_WRITE_BUFFER_SIZE ||
+        data.size() > MAX_WRITE_BUFFER_SIZE - writeBuffer.size())
+        return false;
+
     writeBuffer.append(data);
+    return true;
 }
 
 void Client::consumeReadBuffer(size_t length)

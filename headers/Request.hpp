@@ -3,7 +3,6 @@
 /* C++ includes */
 #include <string>
 #include <map>
-#include <vector>
 #include <iosfwd>
 
 using namespace std;

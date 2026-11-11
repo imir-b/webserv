@@ -5,7 +5,7 @@
 #include <limits>
 
 /* HPP headers */
-#include "requestParser.hpp"
+#include "RequestParser.hpp"
 
 using namespace std;
 
@@ -151,7 +151,7 @@ int RequestParser::parseContentLength(const string& value, size_t& length)
         if (!isdigit(static_cast<unsigned char>(value[i])))
             return INVALID_REQUEST;
 
-        size_t digit = value[i] - '0';
+        size_t digit = value[i] - '0'; // extraction chirurgicale de content-length
 
         if (length > (numeric_limits<size_t>::max() - digit) / 10)
             return INVALID_REQUEST;

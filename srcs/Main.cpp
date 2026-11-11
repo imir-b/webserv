@@ -1,7 +1,7 @@
 
 /* HPP headers */
-#include "main.hpp"
-#include "server.hpp"
+#include "Main.hpp"
+#include "Server.hpp"
 
 int main()
 {

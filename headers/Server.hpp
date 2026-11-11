@@ -13,8 +13,9 @@
 #include <algorithm>
 
 /* HPP headers */
-#include "client.hpp"
-#include "requestParser.hpp"
+#include "Client.hpp"
+#include "RequestParser.hpp"
+#include "RequestHandler.hpp"
 
 using namespace std;
 
@@ -27,6 +28,9 @@ class Server {
 
         /* Request Parser class to manage request parsing */
         RequestParser requestParser;
+
+        /* Request Handler class to handle request methods */
+        RequestHandler requestHandler;
 
     public:
         /* Constructor */
@@ -45,10 +49,6 @@ class Server {
         int acceptClient();
         int handleClient(Client &client);
         int processRequest(Client &client);
-        int handleGet(Client &client);
-        int handlePost(Client &client);
-        int handleDelete(Client &client);
-        int handleMethodNotAllowed(Client &client);
         int sendResponse(Client &client);
         int sendErrorBadRequest(Client &client);
         void removeClient(size_t index);
