@@ -37,6 +37,18 @@ Response RequestHandler::handleMethodNotAllowed(void)
     return response;
 }
 
+// Code	Situation
+// 200 OK	Fichier trouvé et envoyé
+// 301 Moved Permanently	Redirection permanente
+// 302 Found	Redirection temporaire
+// 304 Not Modified	Ressource non modifiée
+// 400 Bad Request	Requête invalide
+// 403 Forbidden	Ressource interdite
+// 404 Not Found	Fichier inexistant
+// 405 Method Not Allowed	GET non autorisé sur la location
+// 414 URI Too Long	URI trop longue
+// 500 Internal Server Error	Erreur interne
+
 /* Handle GET request */
 Response RequestHandler::handleGet(const Request &request)
 {

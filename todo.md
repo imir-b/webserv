@@ -1,13 +1,6 @@
 /**
  * ## TO-DO LIST ##
  *
- * 5. CONSTRUCTION DES RÉPONSES HTTP
- *     - Créer une classe HttpResponse
- *     - Générer les status codes (200, 404, 403, 500...)
- *     - Générer les headers (Content-Type, Content-Length...)
- *     - Générer les réponses personnalisées
- *     - Gérer Connection: keep-alive / close
- *
  * 6. GESTION DES ROUTES ET FICHIERS
  *     - Implémenter GET (servir HTML, CSS, JS, images...)
  *     - Implémenter POST (réception de données / uploads)

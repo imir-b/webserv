@@ -442,3 +442,9 @@ int Server::setup(void)
 
     return serverSocket;
 }
+
+int Server::parseConfig(string filename) {
+    (void)filename;
+
+    return 0;
+}

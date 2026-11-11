@@ -14,6 +14,7 @@
 
 /* HPP headers */
 #include "Client.hpp"
+#include "Config.hpp"
 #include "RequestParser.hpp"
 #include "RequestHandler.hpp"
 
@@ -25,6 +26,9 @@ class Server {
         int serverSocket;
         vector<struct pollfd> fds;
         map<int, Client> clients;
+
+        /* Server configuration, define in configuration file */
+        Config config;
 
         /* Request Parser class to manage request parsing */
         RequestParser requestParser;
@@ -38,6 +42,7 @@ class Server {
         ~Server();
 
         /* Methods */
+        int parseConfig(string filename);
         int setup();
         int run();
         int processEvents();
