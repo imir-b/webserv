@@ -5,6 +5,15 @@
 #include "Server.hpp"
 #include "Response.hpp"
 
+/* Constructor */
+
+Server::Server(void) {}
+
+Server::~Server(void) {}
+
+/**
+ * Utils
+ */
 /* Set the socket to non-blocking */
 int set_nonblocking(int fd)
 {
@@ -80,9 +89,6 @@ int Server::handleClient(Client &client)
 
     return CLIENT_CONNECTED;
 }
-Server::Server(void) {}
-
-Server::~Server(void) {}
 
 /* Close and remove a client */
 void Server::removeClient(size_t index)
@@ -153,21 +159,13 @@ int Server::sendResponse(Client &client)
 
     const string& buffer = client.getWriteBuffer();
 
-    while (client.getBytesSent() < buffer.size()
-           && sendCount < MAX_SENDS)
-    {
+    while (client.getBytesSent() < buffer.size() && sendCount < MAX_SENDS) {
         size_t remaining = buffer.size() - client.getBytesSent();
 
-        ssize_t bytes = send(
-            client.getFd(),
-            buffer.data() + client.getBytesSent(),
-            remaining,
-            0
-        );
+        ssize_t bytes = send(client.getFd(), buffer.data() + client.getBytesSent(), remaining, 0);
 
         /* Data successfully sent */
-        if (bytes > 0)
-        {
+        if (bytes > 0) {
             client.addBytesSent(bytes);
             ++sendCount;
             continue;
@@ -199,23 +197,15 @@ int Server::sendResponse(Client &client)
 /* Parse and process the client's HTTP request */
 bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
 {
-    while (!client.getReadBuffer().empty())
-    {
+    while (!client.getReadBuffer().empty()) {
         size_t consumed = 0;
 
-        int ret = requestParser.parse(
-            client.getReadBuffer(),
-            client.getRequest(),
-            consumed
-        );
+        int ret = requestParser.parse(client.getReadBuffer(), client.getRequest(), consumed);
 
-        if (ret == INCOMPLETE_REQUEST)
-        {
+        if (ret == INCOMPLETE_REQUEST) {
             /* Client disconnected before completing the request */
-            if (peerClosed)
-            {
-                if (sendErrorBadRequest(client) < 0)
-                {
+            if (peerClosed) {
+                if (sendErrorBadRequest(client) < 0) {
                     removeClient(index);
                     return true;
                 }
@@ -226,11 +216,9 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
             break;
         }
 
-        if (ret == INVALID_REQUEST || consumed == 0)
-        {
+        if (ret == INVALID_REQUEST || consumed == 0) {
             /* Prepare a 400 Bad Request response */
-            if (sendErrorBadRequest(client) < 0)
-            {
+            if (sendErrorBadRequest(client) < 0) {
                 removeClient(index);
                 return true;
             }
@@ -262,19 +250,16 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
 /* Send response data to the client */
 bool Server::processClientWrite(size_t index, Client &client)
 {
-    if (sendResponse(client) < 0)
-    {
+    if (sendResponse(client) < 0) {
         removeClient(index);
         return true;
     }
 
     /* All response data has been sent */
-    if (client.getWriteBuffer().empty())
-    {
+    if (client.getWriteBuffer().empty()) {
         fds[index].events &= ~POLLOUT;
 
-        if (client.shouldCloseAfterResponse())
-        {
+        if (client.shouldCloseAfterResponse()) {
             removeClient(index);
             return true;
         }
@@ -288,8 +273,7 @@ bool Server::processClientRead(size_t index, Client &client, bool &peerClosed)
 {
     int ret = handleClient(client);
 
-    if (ret == CLIENT_ERROR)
-    {
+    if (ret == CLIENT_ERROR) {
         removeClient(index);
         return true;
     }
@@ -309,8 +293,7 @@ bool Server::processClientEvent(size_t index)
 
     map<int, Client>::iterator it = clients.find(fd);
 
-    if (it == clients.end())
-    {
+    if (it == clients.end()) {
         removeClient(index);
         return true;
     }
@@ -319,29 +302,25 @@ bool Server::processClientEvent(size_t index)
     bool peerClosed = false;
 
     /* Client socket: error */
-    if (events & (POLLERR | POLLNVAL))
-    {
+    if (events & (POLLERR | POLLNVAL)) {
         removeClient(index);
         return true;
     }
 
     /* Client socket: data available or disconnected */
-    if (events & (POLLIN | POLLHUP))
-    {
+    if (events & (POLLIN | POLLHUP)) {
         if (processClientRead(index, *client, peerClosed))
             return true;
     }
 
     /* Client socket: data can be sent */
-    if (events & POLLOUT)
-    {
+    if (events & POLLOUT) {
         if (processClientWrite(index, *client))
             return true;
     }
 
     /* Client socket: disconnected */
-    if (peerClosed && client->getWriteBuffer().empty())
-    {
+    if (peerClosed && client->getWriteBuffer().empty()) {
         removeClient(index);
         return true;
     }
@@ -354,15 +333,12 @@ int Server::processEvents(void)
 {
     bool newConnection = false;
 
-    for (size_t i = 0; i < fds.size(); )
-    {
+    for (size_t i = 0; i < fds.size(); ) {
         short events = fds[i].revents;
 
         /* Server socket */
-        if (fds[i].fd == serverSocket)
-        {
-            if (events & (POLLERR | POLLHUP | POLLNVAL))
-            {
+        if (fds[i].fd == serverSocket) {
+            if (events & (POLLERR | POLLHUP | POLLNVAL)) {
                 cerr << "Listening socket error" << endl;
                 return -1;
             }
@@ -432,8 +408,7 @@ int Server::setup(void)
 
     /* configure option REUSEADDR to enable resusing server socket */
     int opt = 1;
-    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR,
-                   &opt, sizeof(opt)) < 0) {
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt");
         close(serverSocket);
         return -1;
@@ -446,8 +421,7 @@ int Server::setup(void)
     address.sin_addr.s_addr = htonl(INADDR_ANY);
 
     /* bind server socket with sockadrr structure */
-    if (bind(serverSocket, (struct sockaddr *)&address,
-             sizeof(address)) < 0) {
+    if (bind(serverSocket, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("bind");
         close(serverSocket);
         return -1;
