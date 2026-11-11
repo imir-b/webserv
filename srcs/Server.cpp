@@ -146,7 +146,7 @@ int Server::sendErrorBadRequest(Client &client)
     response.setBody("400 Bad Request\n");
 
     if (!client.appendWriteBuffer(response.serialize()))
-        return 1;
+        return -1;
     client.setCloseAfterResponse(true);
 
     return 0;
