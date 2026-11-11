@@ -443,6 +443,7 @@ int Server::setup(void)
     return serverSocket;
 }
 
+/* Parse configuration file to fill Config class */
 int Server::parseConfig(string filename) {
     (void)filename;
 
