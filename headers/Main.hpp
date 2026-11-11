@@ -23,7 +23,7 @@
 using namespace std;
 
 /* Constants */
-#define PORT 6767                       // Port used by the server to listen for connections
+#define PORT 8080                       // Port used by the server to listen for connections
 #define BACKLOG 5                       // Maximum number of pending connections in the queue
 #define BUFSIZE 1024                    // Maximum number of bytes read per recv() call
 #define MAX_READS 10                    // Maximum number of recv() calls per client per event

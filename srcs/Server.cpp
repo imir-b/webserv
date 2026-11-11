@@ -56,9 +56,9 @@ int Server::handleClient(Client &client)
 
         if (bytes > 0)
         {
-            if (client.appendReadBuffer(buffer, bytes))
+            if (!client.appendReadBuffer(buffer, static_cast<size_t>(bytes)))
                 return CLIENT_ERROR; // A remplacer plus tard par une gestion HTTP 413 <<<---
-            cout << "Read buffer client (fd " << client.getFd() << "): ";
+            cout << endl << "Read buffer client (fd " << client.getFd() << "): " << endl;
             cout.write(client.getReadBuffer().data(), client.getReadBuffer().size());
             cout << endl;
 
@@ -232,8 +232,9 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
         Response response = requestHandler.process(client.getRequest());
         
         client.consumeReadBuffer(consumed);
-        if (!client.appendWriteBuffer(response.serialize()))
-            return false;
+        if (!client.appendWriteBuffer(response.serialize())) {
+            return false; // supprimer le client proprement <<<---
+        }
         client.setCloseAfterResponse(true);
 
         /* Enable POLLOUT when response is ready */
@@ -271,6 +272,7 @@ bool Server::processClientWrite(size_t index, Client &client)
 /* Receive data from an existing client */
 bool Server::processClientRead(size_t index, Client &client, bool &peerClosed)
 {
+    cout << "Entering processClientRead - fd " << client.getFd() << endl; // debug <<<---
     int ret = handleClient(client);
 
     if (ret == CLIENT_ERROR) {
@@ -309,12 +311,14 @@ bool Server::processClientEvent(size_t index)
 
     /* Client socket: data available or disconnected */
     if (events & (POLLIN | POLLHUP)) {
+        cout << "request catch" << endl; // debug <<<---
         if (processClientRead(index, *client, peerClosed))
             return true;
     }
 
     /* Client socket: data can be sent */
     if (events & POLLOUT) {
+        cout << "response send" << endl; // debug <<<---
         if (processClientWrite(index, *client))
             return true;
     }
@@ -441,11 +445,4 @@ int Server::setup(void)
     }
 
     return serverSocket;
-}
-
-/* Parse configuration file to fill Config class */
-int Server::parseConfig(string filename) {
-    (void)filename;
-
-    return 0;
 }

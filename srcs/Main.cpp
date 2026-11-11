@@ -1,19 +1,21 @@
 
 /* HPP headers */
+#include "ConfigParser.hpp"
 #include "Main.hpp"
 #include "Server.hpp"
 
 int main(int ac, char **av)
 {
     if (ac != 2) {
-        cout << "Usage: ./webserv [configuration file]" << endl;
+        cerr << "Usage: ./webserv [configuration file]" << endl;
         return 1;
     }
 
+    ConfigParser parser;
     Server server;
-
-    if (server.parseConfig(av[1]) < 0) {
-        cout << "Error: Can't parse configuration file" << endl;
+    
+    if (parser.parseConfig(av[1], server) < 0) {
+        cerr << "Error: Can't parse configuration file" << endl;
         return 1;
     }
 
@@ -28,6 +30,5 @@ int main(int ac, char **av)
     int status = server.run();
 
     close(serverSocket);
-    
     return status;
 }

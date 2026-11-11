@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <climits>
 #include <cctype>
+#include <fstream>
 #include <algorithm>
 
 /* HPP headers */
@@ -41,8 +42,10 @@ class Server {
         Server();
         ~Server();
 
+        /* Setters */
+        void setConfig(Config &config);
+
         /* Methods */
-        int parseConfig(string filename);
         int setup();
         int run();
         int processEvents();
