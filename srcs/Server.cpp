@@ -1,9 +1,9 @@
 
 /* HPP headers */
-#include "Main.hpp"
-#include "Client.hpp"
-#include "Server.hpp"
-#include "Response.hpp"
+#include "../headers/Main.hpp"
+#include "../headers/Client.hpp"
+#include "../headers/Server.hpp"
+#include "../headers/Response.hpp"
 
 /* Constructor */
 
@@ -228,6 +228,12 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
         }
 
         cout << client.getRequest() << endl;
+
+		// ICI gerrer les CGI et l'exec <<<---
+		// on a bien fini de parser la request qui est valide : definir s'il s'agit d'une request CGI ou non
+		// --> si oui : pipe fork execve compagnie
+		// --> si non traitement standard (fichier statiques ect)
+
 
         Response response = requestHandler.process(client.getRequest());
         

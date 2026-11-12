@@ -1,8 +1,8 @@
 
 /* HPP headers */
-#include "ConfigParser.hpp"
-#include "Main.hpp"
-#include "Server.hpp"
+#include "../headers/ConfigParser.hpp"
+#include "../headers/Main.hpp"
+#include "../headers/Server.hpp"
 
 int main(int ac, char **av)
 {

@@ -1,7 +1,7 @@
 
 /* HPP headers */
-#include "Main.hpp"
-#include "Client.hpp"
+#include "../headers/Main.hpp"
+#include "../headers/Client.hpp"
 
 /* Constructor */
 
