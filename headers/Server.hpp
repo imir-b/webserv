@@ -42,7 +42,8 @@ class Server {
         Server();
         ~Server();
 
-        /* Setters */
+        /* Config */
+        const Config &getConfig() const;
         void setConfig(Config &config);
 
         /* Methods */

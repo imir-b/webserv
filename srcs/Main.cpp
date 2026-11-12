@@ -19,6 +19,9 @@ int main(int ac, char **av)
         return 1;
     }
 
+    cout << "Config after parsing :" << endl;
+    cout << server.getConfig() << endl;
+
     signal(SIGPIPE, SIG_IGN);
 
     int serverSocket = server.setup();

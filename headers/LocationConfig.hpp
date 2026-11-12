@@ -32,4 +32,6 @@ class LocationConfig {
         const string &getIndex() const;
         const vector<string> &getAllowedMethods() const;
         bool getAutoIndex() const;
+    
+    friend ostream &operator<<(ostream &os, const LocationConfig &location);
 };

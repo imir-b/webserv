@@ -8,6 +8,32 @@ Config::Config() : listen(PORT), serverName("localhost"), root("./www"), index("
 
 Config::~Config() {}
 
+/* Ostream */
+
+ostream &operator<<(ostream &os, const Config &config) {
+    os << "Config {" << endl;
+    os << "    Listen: " << config.getListen() << endl;
+    os << "    ServerName: " << config.getServerName() << endl;
+    os << "    Root: " << config.getRoot() << endl;
+    os << "    Index: " << config.getIndex() << endl;
+    os << "    ClientMaxBodySize: " << config.getClientMaxBodySize() << endl;
+
+    os << "    Locations: [" << endl;
+
+    const vector<LocationConfig> &locations = config.getLocations();
+
+    for (size_t i = 0; i < locations.size(); ++i)
+    {
+        os << "        Location " << i + 1 << ":" << endl;
+        os << locations[i] << endl;
+    }
+
+    os << "    ]" << endl;
+    os << "}";
+
+    return os;
+}
+
 /* Setters */
 void Config::setListen(int port) {
     listen = port;

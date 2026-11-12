@@ -446,3 +446,7 @@ int Server::setup(void)
 
     return serverSocket;
 }
+
+const Config &Server::getConfig(void) const {
+        return config;
+}

@@ -1,4 +1,7 @@
 
+/* C++ includes */
+#include <iostream>
+
 /* HPP headers */
 #include "LocationConfig.hpp"
 
@@ -6,6 +9,37 @@
 LocationConfig::LocationConfig() : path("/"), root(""), index("index.html"), autoindex(false) {}
 
 LocationConfig::~LocationConfig() {}
+
+/* Ostream */
+
+ostream &operator<<(ostream &os, const LocationConfig &location)
+{
+    os << "Location {" << endl;
+    os << "    Path: " << location.getPath() << endl;
+    os << "    Root: " << location.getRoot() << endl;
+    os << "    Index: " << location.getIndex() << endl;
+
+    os << "    Allowed Methods: [";
+
+    const vector<string> &methods = location.getAllowedMethods();
+
+    for (size_t i = 0; i < methods.size(); ++i)
+    {
+        os << methods[i];
+
+        if (i + 1 < methods.size())
+            os << ", ";
+    }
+
+    os << "]" << endl;
+
+    os << "    AutoIndex: "
+       << (location.getAutoIndex() ? "true" : "false") << endl;
+
+    os << "}";
+
+    return os;
+}
 
 /* Setters */
 void LocationConfig::setPath(const string &value) {

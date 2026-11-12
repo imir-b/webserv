@@ -39,4 +39,7 @@ class Config {
         const string getIndex() const;
         size_t getClientMaxBodySize() const;
         const vector<LocationConfig> &getLocations() const;
+
+    friend ostream &operator<<(ostream &os, const Config &config);
 };
+
