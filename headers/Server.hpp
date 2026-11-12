@@ -45,7 +45,7 @@ class Server {
         /* Config */
         Config &getConfig();
         const Config &getConfig() const;
-        void setConfig(Config &config);
+        void setConfig(Config &_config);
 
         /* Methods */
         int setup();

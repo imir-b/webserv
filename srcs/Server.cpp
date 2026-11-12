@@ -454,3 +454,7 @@ const Config &Server::getConfig(void) const {
 Config &Server::getConfig(void) {
     return config;
 }
+
+void Server::setConfig(Config &_config) {
+    config = _config;
+}
