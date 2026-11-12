@@ -1,7 +1,9 @@
 #pragma once
 
+/* HPP headers */
 #include "Request.hpp"
 #include "Response.hpp"
+#include "Config.hpp"
 
 class RequestHandler
 {
@@ -9,11 +11,11 @@ class RequestHandler
         RequestHandler();
         ~RequestHandler();
 
-        Response process(const Request& request);
+        Response process(const Request &request, const Config &config);
 
     private:
-        Response handleGet(const Request& request);
-        Response handlePost(const Request& request);
-        Response handleDelete(const Request& request);
+        Response handleGet(const Request &request, const Config &config);
+        Response handlePost(const Request &request, const Config &config);
+        Response handleDelete(const Request &request, const Config &config);
         Response handleMethodNotAllowed();
 };

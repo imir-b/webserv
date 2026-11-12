@@ -1,4 +1,6 @@
 
+/* HPP headers*/
+#include "Config.hpp"
 #include "RequestHandler.hpp"
 
 /* Constructor */
@@ -8,16 +10,16 @@ RequestHandler::RequestHandler() {}
 RequestHandler::~RequestHandler() {}
 
 /* Process the client's request and prepare the HTTP response */
-Response RequestHandler::process(const Request &request)
+Response RequestHandler::process(const Request &request, const Config &config)
 {
     if (request.getMethod() == "GET")
-        return handleGet(request);
+        return handleGet(request, config);
 
     if (request.getMethod() == "POST")
-        return handlePost(request);
+        return handlePost(request, config);
 
     if (request.getMethod() == "DELETE")
-        return handleDelete(request);
+        return handleDelete(request, config);
 
     return handleMethodNotAllowed();
 }
@@ -50,17 +52,16 @@ Response RequestHandler::handleMethodNotAllowed(void)
 // 500 Internal Server Error	Erreur interne
 
 /* Handle GET request */
-Response RequestHandler::handleGet(const Request &request)
+Response RequestHandler::handleGet(const Request &request, const Config &config)
 {
     Response response;
+    (void) config;
 
-    if (request.getUri() == "/")
-    {
+    if (request.getUri() == "/") {
         response.setStatusCode(HTTP_OK);
         response.setBody("Hello World!\n");
     }
-    else
-    {
+    else {
         response.setStatusCode(HTTP_NOT_FOUND);
         response.setBody("Not Found\n");
     }
@@ -72,24 +73,32 @@ Response RequestHandler::handleGet(const Request &request)
 }
 
 /* Handle POST request */
-Response RequestHandler::handlePost(const Request &request)
+Response RequestHandler::handlePost(const Request &request, const Config &config)
 {
     Response response;
+    (void) config;
 
-    response.setStatusCode(HTTP_OK);
+    if (request.getBody().size() > config.getClientMaxBodySize()) {
+        response.setStatusCode(HTTP_PAYLOAD_TOO_LARGE);
+        response.setBody("413 Payload Too Large\n");
+    }
+    else {
+        response.setStatusCode(HTTP_OK);
+        response.setBody("POST received:\n" + request.getBody());
+    }
+
     response.setHeader("Content-Type", "text/plain");
     response.setHeader("Connection", "close");
-
-    response.setBody("POST received:\n" + request.getBody());
 
     return response;
 }
 
 /* Handle DELETE request */
-Response RequestHandler::handleDelete(const Request &request) // This is not implemented yet <<<---
+Response RequestHandler::handleDelete(const Request &request, const Config &config)
 {
     Response response;
     (void)request;
+    (void)config;
 
     response.setStatusCode(HTTP_NOT_IMPLEMENTED);
     response.setHeader("Content-Type", "text/plain");

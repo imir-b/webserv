@@ -98,22 +98,49 @@ void Server::removeClient(size_t index)
 {
     int fd = fds[index].fd;
     close(fd);
+    clientListeners.erase(fd);
     clients.erase(fd);
     fds.erase(fds.begin() + index);
 }
 
-/* Accept a new connection */
-int Server::acceptClient(void)
+bool Server::isListeningSocket(int fd) const
 {
-    int clientSocket = accept(serverSocket, NULL, NULL);
+    for (size_t i = 0; i < serverSockets.size(); i++) {
+        if (serverSockets[i].fd == fd)
+            return true;
+    }
+
+    return false;
+}
+
+/* Accept a new connection */
+int Server::acceptClient(int listeningFd) {
+    int clientSocket = accept(listeningFd, NULL, NULL);
+
     if (clientSocket < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
             return 0;
+
         perror("accept");
         return -1;
     }
 
     if (set_nonblocking(clientSocket) < 0) {
+        close(clientSocket);
+        return -1;
+    }
+
+    bool found = false;
+
+    for (size_t i = 0; i < serverSockets.size(); i++) {
+        if (serverSockets[i].fd == listeningFd) {
+            clientListeners[clientSocket] = serverSockets[i];
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
         close(clientSocket);
         return -1;
     }
@@ -125,15 +152,19 @@ int Server::acceptClient(void)
     cout << "Accepted a new connection (fd "
          << clientSocket << ")." << endl;
 
-
     return 0;
 }
 
 /* Accept new connections after processing existing clients */
-int Server::processNewConnections(void)
-{
-    if (acceptClient() < 0)
-        return -1;
+int Server::processNewConnections(int listeningFd) {
+    while (true) {
+        int ret = acceptClient(listeningFd);
+
+        if (ret < 0)
+            return -1;
+
+        break;
+    }
 
     return 0;
 }
@@ -232,7 +263,8 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
 
         cout << client.getRequest() << endl;
 
-        Response response = requestHandler.process(client.getRequest());
+        const Config &config = selectConfig(client.getRequest(), client.getFd());
+        Response response = requestHandler.process(client.getRequest(), config);
         
         client.consumeReadBuffer(consumed);
         if (!client.appendWriteBuffer(response.serialize())) {
@@ -338,35 +370,35 @@ bool Server::processClientEvent(size_t index)
 /* Process events reported by poll */
 int Server::processEvents(void)
 {
-    bool newConnection = false;
+    vector<int> listeningSockets;
 
     for (size_t i = 0; i < fds.size(); ) {
+        int fd = fds[i].fd;
         short events = fds[i].revents;
 
-        /* Server socket */
-        if (fds[i].fd == serverSocket) {
+        if (isListeningSocket(fd)) {
             if (events & (POLLERR | POLLHUP | POLLNVAL)) {
                 cerr << "Listening socket error" << endl;
                 return -1;
             }
 
             if (events & POLLIN)
-                newConnection = true;
+                listeningSockets.push_back(fd);
 
             ++i;
             continue;
         }
 
-        /* Process existing client */
         if (processClientEvent(i))
             continue;
 
         ++i;
     }
 
-    /* Accept new connections after processing existing clients */
-    if (newConnection)
-        return processNewConnections();
+    for (size_t i = 0; i < listeningSockets.size(); i++) {
+        if (processNewConnections(listeningSockets[i]) < 0)
+            return -1;
+    }
 
     return 0;
 }
@@ -376,7 +408,8 @@ int Server::run(void)
 {
     int status = 0;
     
-    add_pollfd(fds, serverSocket);
+    for (size_t i = 0; i < serverSockets.size(); i++)
+        add_pollfd(fds, serverSockets[i].fd);
 
     while (true) {
         int ret = poll(&fds[0], fds.size(), -1);
@@ -403,66 +436,124 @@ int Server::run(void)
     return status;
 }
 
-/* Create, configure and start listening */
-int Server::setup(void)
-{
-    /* create the server socket */
-    Server::serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket < 0) {
+int Server::setupSocket(const string &host, int port) {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sock < 0) {
         perror("socket");
         return -1;
     }
 
-    /* configure option REUSEADDR to enable resusing server socket */
     int opt = 1;
-    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt");
-        close(serverSocket);
+        close(sock);
         return -1;
     }
 
-    /* configure sockaddr structure */
     sockaddr_in address = {};
     address.sin_family = AF_INET;
-    address.sin_port = htons(config.getListen());
+    address.sin_port = htons(port);
 
-    if (inet_pton(AF_INET, config.getHost().c_str(), &address.sin_addr) != 1) {
-        cerr << "Invalid IP address: " << config.getHost() << endl;
-        close(serverSocket);
+    if (inet_pton(AF_INET, host.c_str(), &address.sin_addr) != 1) {
+        cerr << "Invalid IP address: " << host << endl;
+        close(sock);
         return -1;
     }
 
-    /* bind server socket with sockaddr structure */
-    if (bind(serverSocket, (struct sockaddr *)&address, sizeof(address)) < 0) {
+    if (bind(sock, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("bind");
-        close(serverSocket);
+        close(sock);
         return -1;
     }
 
-    /* define backlog with listen */
-    if (listen(serverSocket, BACKLOG) < 0) {
+    if (listen(sock, BACKLOG) < 0) {
         perror("listen");
-        close(serverSocket);
+        close(sock);
         return -1;
     }
 
-    /* set the server socket non-blocking */
-    if (set_nonblocking(serverSocket) < 0) {
-        close(serverSocket);
+    if (set_nonblocking(sock) < 0) {
+        close(sock);
         return -1;
     }
 
-    return serverSocket;
+    return sock;
 }
 
-const Config &Server::getConfig(void) const {
-        return config;
+int Server::setupSockets(void) {
+    for (size_t i = 0; i < configs.size(); i++) {
+        bool alreadyExists = false;
+
+        for (size_t j = 0; j < serverSockets.size(); j++) {
+            if (serverSockets[j].host == configs[i].getHost()
+                && serverSockets[j].port == configs[i].getListen()) {
+                alreadyExists = true;
+                break;
+            }
+        }
+
+        if (alreadyExists)
+            continue;
+
+        int sock = setupSocket(configs[i].getHost(), configs[i].getListen());
+
+        if (sock < 0)
+            return -1;
+
+        ListeningSocket listening;
+
+        listening.fd = sock;
+        listening.host = configs[i].getHost();
+        listening.port = configs[i].getListen();
+
+        serverSockets.push_back(listening);
+    }
+
+    return 0;
 }
 
-Config &Server::getConfig(void) {
-    return config;
+void Server::addConfig(const Config &config) {
+    configs.push_back(config);
 }
 
-void Server::setConfig(Config &_config) {
-    config = _config;
+const vector<Config> &Server::getConfigs() const {
+    return configs;
+}
+
+const Config &Server::selectConfig(const Request &request, int clientFd) const {
+    map<int, ListeningSocket>::const_iterator it;
+    it = clientListeners.find(clientFd);
+
+    if (configs.empty())
+        throw runtime_error("No server configuration available");
+
+    if (it == clientListeners.end())
+        return configs[0];
+
+    const ListeningSocket &listening = it->second;
+    string host = request.getHeader("Host");
+
+    /* Remove port from HTTP Host */
+    size_t colon = host.find(':');
+
+    if (colon != string::npos)
+        host.erase(colon);
+
+    /* Search matching virtual host */
+    for (size_t i = 0; i < configs.size(); i++) {
+        if (configs[i].getHost() == listening.host
+            && configs[i].getListen() == listening.port
+            && configs[i].getServerName() == host)
+            return configs[i];
+    }
+
+    /* Return default virtual host */
+    for (size_t i = 0; i < configs.size(); i++) {
+        if (configs[i].getHost() == listening.host
+            && configs[i].getListen() == listening.port)
+            return configs[i];
+    }
+
+    return configs[0];
 }

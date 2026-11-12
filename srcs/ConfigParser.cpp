@@ -239,8 +239,9 @@ static int parse_directive(Config &config, const vector<string> &tokens, size_t 
     return 0;
 }
 
-/* Parse configuration file to fill Config class */
-int ConfigParser::parseConfig(const string &filename, Server &server) {
+/* Parse configuration file to fill vector<Config> in Server */
+int ConfigParser::parseConfig(const string &filename, Server &server)
+{
     string content;
 
     if (readConfigFile(filename, content) < 0)
@@ -248,48 +249,71 @@ int ConfigParser::parseConfig(const string &filename, Server &server) {
 
     vector<string> tokens = tokenize(content);
 
-    if (tokens.empty() || tokens[0] != "server")
+    if (tokens.empty())
         return -1;
 
-    if (tokens.size() < 3 || tokens[1] != "{")
-        return -1;
+    size_t pos = 0;
 
-    Config config = server.getConfig();
-    bool serverClosed = false;
-    size_t pos = 2;
-
-    while (pos < tokens.size()) {
-        if (tokens[pos] == "}") {
-            serverClosed = true;
-            pos++;
-            break;
-        }
-
-        if (tokens[pos] == "location") {
-            LocationConfig location;
-
-            if (parse_location(location, tokens, pos) < 0) {
-                cerr << "Error: can't parse location at token " << pos << endl;
-                return -1;
-            }
-
-            config.addLocation(location);
-            continue;
-        }
-
-        if (parse_directive(config, tokens, pos) < 0) {
-            cerr << "Error: can't parse directive: "
-                 << tokens[pos] << endl;
+    while (pos < tokens.size())
+    {
+        /* Each block must start with server */
+        if (tokens[pos] != "server") {
+            cerr << "Error: expected 'server' at token " << pos << endl;
             return -1;
         }
 
-        pos += 3;
+        if (pos + 1 >= tokens.size() || tokens[pos + 1] != "{")
+            return -1;
+
+        Config config;
+        bool serverClosed = false;
+
+        pos += 2;
+
+        /* Parse current server block */
+        while (pos < tokens.size())
+        {
+            if (tokens[pos] == "}") {
+                serverClosed = true;
+                pos++;
+                break;
+            }
+
+            /* Parse location */
+            if (tokens[pos] == "location") {
+                LocationConfig location;
+
+                if (parse_location(location, tokens, pos) < 0) {
+                    cerr << "Error: can't parse location at token "
+                         << pos << endl;
+                    return -1;
+                }
+
+                config.addLocation(location);
+                continue;
+            }
+
+            /* Parse server directive */
+            if (parse_directive(config, tokens, pos) < 0) {
+                cerr << "Error: can't parse directive: "
+                     << tokens[pos] << endl;
+                return -1;
+            }
+
+            pos += 3;
+        }
+
+        if (!serverClosed) {
+            cerr << "Error: missing closing server brace" << endl;
+            return -1;
+        }
+
+        /* Add parsed virtual server */
+        server.addConfig(config);
     }
 
-    if (!serverClosed || pos != tokens.size())
+    if (server.getConfigs().empty())
         return -1;
-
-    server.setConfig(config);
 
     return 0;
 }

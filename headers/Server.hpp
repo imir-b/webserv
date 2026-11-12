@@ -21,15 +21,22 @@
 
 using namespace std;
 
+struct ListeningSocket {
+    int fd;
+    string host;
+    int port;
+};
+
 class Server {
     private:
         /* Attributes */
-        int serverSocket;
+        vector<ListeningSocket> serverSockets;
+        map<int, ListeningSocket> clientListeners;
         vector<struct pollfd> fds;
         map<int, Client> clients;
 
         /* Server configuration, define in configuration file */
-        Config config;
+        vector<Config> configs;
 
         /* Request Parser class to manage request parsing */
         RequestParser requestParser;
@@ -42,21 +49,24 @@ class Server {
         Server();
         ~Server();
 
-        /* Config */
-        Config &getConfig();
-        const Config &getConfig() const;
-        void setConfig(Config &_config);
+        /* Configs */
+        void addConfig(const Config &config);
+        const vector<Config> &getConfigs() const;
+        const Config &selectConfig(const Request &request, int clientFd) const;
 
         /* Methods */
         int setup();
+        int setupSocket(const string &host, int port);
+        int setupSockets();
         int run();
         int processEvents();
         bool processClientEvent(size_t index);
         bool processClientRead(size_t index, Client &client, bool &peerClosed);
         bool processClientWrite(size_t index, Client &client);
         bool processClientRequest(size_t index, Client &client, bool peerClosed);
-        int processNewConnections();
-        int acceptClient();
+        int processNewConnections(int listeningFd);
+        int acceptClient(int listeningFd);
+        bool isListeningSocket(int fd) const;
         int handleClient(Client &client);
         int processRequest(Client &client);
         int sendResponse(Client &client);

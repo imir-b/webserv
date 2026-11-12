@@ -51,7 +51,7 @@ string Response::getReasonPhrase(void) const
         case HTTP_METHOD_NOT_ALLOWED:
             return "Method Not Allowed";
 
-        case HTTP_CONTENT_TOO_LARGE:
+        case HTTP_PAYLOAD_TOO_LARGE:
             return "Content Too Large";
 
         case HTTP_INTERNAL_SERVER_ERROR:
