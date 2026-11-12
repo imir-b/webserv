@@ -43,6 +43,7 @@ class Server {
         ~Server();
 
         /* Config */
+        Config &getConfig();
         const Config &getConfig() const;
         void setConfig(Config &config);
 

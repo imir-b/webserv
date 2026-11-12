@@ -20,7 +20,7 @@ int main(int ac, char **av)
     }
 
     cout << "Config after parsing :" << endl;
-    cout << server.getConfig() << endl;
+    cout << server.getConfig() << endl << endl;
 
     signal(SIGPIPE, SIG_IGN);
 

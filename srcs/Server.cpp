@@ -450,3 +450,7 @@ int Server::setup(void)
 const Config &Server::getConfig(void) const {
         return config;
 }
+
+Config &Server::getConfig(void) {
+    return config;
+}

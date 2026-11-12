@@ -17,6 +17,6 @@ class ConfigParser {
         ~ConfigParser();
 
         vector<string> tokenize(const string &content);
-        int readConfigFile(const string &filename, string content);
+        int readConfigFile(const string &filename, string &content);
         int parseConfig(const string &filename, Server &server);
 };
