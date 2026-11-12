@@ -124,6 +124,8 @@ static int parse_location(LocationConfig &config, vector<string> &tokens, size_t
             pos++;
 
             while (pos < tokens.size() && tokens[pos] != ";") {
+                if (tokens[pos] != "GET" && tokens[pos] != "POST" && tokens[pos] != "DELETE")
+                    return -1;
                 methods.push_back(tokens[pos]);
                 pos++;
             }
@@ -170,12 +172,26 @@ static int parse_directive(Config &config, const vector<string> &tokens, size_t 
         return -1;
 
     if (directive == "listen") {
+        string host = "0.0.0.0";
+        string portStr = value;
+
+        size_t separator = value.find(':');
+
+        if (separator != string::npos) {
+            host = value.substr(0, separator);
+            portStr = value.substr(separator + 1);
+
+            if (host.empty() || portStr.empty())
+                return -1;
+        }
+
         char *end;
-        long port = strtol(value.c_str(), &end, 10);
+        long port = strtol(portStr.c_str(), &end, 10);
 
         if (*end != '\0' || port < 1 || port > 65535)
             return -1;
 
+        config.setHost(host);
         config.setListen(static_cast<int>(port));
     }
     else if (directive == "server_name")
@@ -239,12 +255,15 @@ int ConfigParser::parseConfig(const string &filename, Server &server) {
         return -1;
 
     Config config = server.getConfig();
-
+    bool serverClosed = false;
     size_t pos = 2;
 
     while (pos < tokens.size()) {
-        if (tokens[pos] == "}")
+        if (tokens[pos] == "}") {
+            serverClosed = true;
+            pos++;
             break;
+        }
 
         if (tokens[pos] == "location") {
             LocationConfig location;
@@ -267,7 +286,8 @@ int ConfigParser::parseConfig(const string &filename, Server &server) {
         pos += 3;
     }
 
-    // vérifier les accolades restantes et les tokens après server
+    if (!serverClosed || pos != tokens.size())
+        return -1;
 
     server.setConfig(config);
 

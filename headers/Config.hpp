@@ -13,6 +13,7 @@ using namespace std;
 class Config {
     private:
         int listen;
+        string host;
         string serverName;
         string root;
         string index;
@@ -26,6 +27,7 @@ class Config {
 
         /* Setters */
         void setListen(int port);
+        void setHost(const string &addr);
         void setServerName(const string &name);
         void setRoot(const string &root);
         void setIndex(const string &index);
@@ -34,6 +36,7 @@ class Config {
 
         /* Getters */
         int getListen() const;
+        const string getHost() const;
         const string getServerName() const;
         const string getRoot() const;
         const string getIndex() const;

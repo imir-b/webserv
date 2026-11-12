@@ -13,6 +13,7 @@ Config::~Config() {}
 ostream &operator<<(ostream &os, const Config &config) {
     os << "Config {" << endl;
     os << "    Listen: " << config.getListen() << endl;
+    os << "    Host: " << config.getHost() << endl;
     os << "    ServerName: " << config.getServerName() << endl;
     os << "    Root: " << config.getRoot() << endl;
     os << "    Index: " << config.getIndex() << endl;
@@ -39,6 +40,10 @@ void Config::setListen(int port) {
     listen = port;
 }
 
+void Config::setHost(const string &addr) {
+    host = addr;
+}
+
 void Config::setServerName(const string &name) {
     serverName = name;
 }
@@ -62,6 +67,10 @@ void Config::addLocation(const LocationConfig &location) {
 /* Getters */
 int Config::getListen() const {
     return listen;
+}
+
+const string Config::getHost() const {
+    return host;
 }
 
 const string Config::getServerName() const {

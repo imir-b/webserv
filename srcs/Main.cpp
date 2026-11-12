@@ -19,8 +19,8 @@ int main(int ac, char **av)
         return 1;
     }
 
-    // cout << "Config after parsing :" << endl;
-    // cout << server.getConfig() << endl << endl;
+    cout << "Config after parsing :" << endl;
+    cout << server.getConfig() << endl << endl;
 
     signal(SIGPIPE, SIG_IGN);
 
@@ -28,7 +28,7 @@ int main(int ac, char **av)
     if (serverSocket < 0)
         return 1;
 
-    cout << "Server is listening on port " << PORT << "..." << endl;
+    cout << "Server is listening on port " << server.getConfig().getListen() << "..." << endl;
 
     int status = server.run();
 

@@ -1,4 +1,7 @@
 
+/* LibC includes */
+#include <arpa/inet.h>
+
 /* HPP headers */
 #include "Main.hpp"
 #include "Client.hpp"
@@ -421,10 +424,15 @@ int Server::setup(void)
     /* configure sockaddr structure */
     sockaddr_in address = {};
     address.sin_family = AF_INET;
-    address.sin_port = htons(PORT);
-    address.sin_addr.s_addr = htonl(INADDR_ANY);
+    address.sin_port = htons(config.getListen());
 
-    /* bind server socket with sockadrr structure */
+    if (inet_pton(AF_INET, config.getHost().c_str(), &address.sin_addr) != 1) {
+        cerr << "Invalid IP address: " << config.getHost() << endl;
+        close(serverSocket);
+        return -1;
+    }
+
+    /* bind server socket with sockaddr structure */
     if (bind(serverSocket, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("bind");
         close(serverSocket);
