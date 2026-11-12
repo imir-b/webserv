@@ -6,8 +6,6 @@
 /* C++ incldues */
 #include <iostream>
 #include <limits>
-#include <climits>
-#include <cstdlib>
 
 /* HPP headers */
 #include "ConfigParser.hpp"
@@ -152,7 +150,7 @@ static int parse_directive(Config &config, const vector<string> &tokens, size_t 
         char *end;
         unsigned long long size = strtoull(number.c_str(), &end, 10);
 
-        if (*end != '\0' || size == 0 || size > SIZE_MAX / multiplier)
+        if (*end != '\0' || size == 0 || size > numeric_limits<size_t>::max() / multiplier)
             return -1;
 
         size *= multiplier;
