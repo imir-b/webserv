@@ -408,9 +408,12 @@ int Server::run(void)
 {
     int status = 0;
     
-    for (size_t i = 0; i < serverSockets.size(); i++)
+    for (size_t i = 0; i < serverSockets.size(); i++) {
         add_pollfd(fds, serverSockets[i].fd);
+        cout << "active server socket : " << serverSockets[i].fd << endl; // <<<--- debug
+    }
 
+    
     while (true) {
         int ret = poll(&fds[0], fds.size(), -1);
 

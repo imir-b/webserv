@@ -18,13 +18,6 @@ int main(int ac, char **av) {
         return 1;
     }
 
-    const vector<Config> &configs = server.getConfigs();
-
-    for (size_t i = 0; i < configs.size(); i++) {
-        cout << "Virtual server " << i + 1 << ":" << endl;
-        cout << configs[i] << endl;
-    }
-
     signal(SIGPIPE, SIG_IGN);
 
     if (server.setupSockets() < 0)
