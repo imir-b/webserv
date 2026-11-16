@@ -551,6 +551,7 @@ const vector<Config> &Server::getConfigs(void) const {
     return configs;
 }
 
+/* Select the virtual host configuration that matches the request's Host header and the listening socket used by the client */
 const Config &Server::selectConfig(const Request &request, int clientFd) const {
     map<int, ListeningSocket>::const_iterator it;
     it = clientListeners.find(clientFd);
