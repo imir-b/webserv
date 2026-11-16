@@ -1,7 +1,7 @@
 
 /* HPP headers */
-#include "Config.hpp"
-#include "Main.hpp"
+#include "../headers/Config.hpp"
+#include "../headers/Main.hpp"
 
 /* Canonical orthodox form */
 
@@ -96,30 +96,30 @@ void Config::addLocation(const LocationConfig &location) {
 }
 
 /* Getters */
-int Config::getListen() const {
+int Config::getListen(void) const {
     return listen;
 }
 
-const string Config::getHost() const {
+const string Config::getHost(void) const {
     return host;
 }
 
-const string Config::getServerName() const {
+const string Config::getServerName(void) const {
     return serverName;
 }
 
-const string Config::getRoot() const {
+const string Config::getRoot(void) const {
     return root;
 }
 
-const string Config::getIndex() const {
+const string Config::getIndex(void) const {
     return index;
 }
 
-size_t Config::getClientMaxBodySize() const {
+size_t Config::getClientMaxBodySize(void) const {
     return clientMaxBodySize;
 }
 
-const vector<LocationConfig> &Config::getLocations() const {
+const vector<LocationConfig> &Config::getLocations(void) const {
     return locations;
 }

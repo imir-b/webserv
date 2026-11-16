@@ -16,6 +16,7 @@ class Request {
         map<string, string> headers;
         string body;
         int status;
+        bool isChunked;
 
     public:
         /* Canonical orthodox form */
@@ -31,6 +32,7 @@ class Request {
         const string& getBody() const;
         const string& getHeader(const string& name) const;
         int getStatus() const;
+        bool getIsChunked() const;
 
         /* Setters */
         void setMethod(const string& method);
@@ -38,6 +40,7 @@ class Request {
         void setHttpVersion(const string& version);
         void setBody(const string& body);
         void setStatus(int status);
+        void setIsChunked(bool value);
 
         /* Methods */
         void addHeader(const string& key, const string& value);

@@ -1,7 +1,7 @@
 
 /* HPP headers*/
-#include "Config.hpp"
-#include "RequestHandler.hpp"
+#include "../headers/Config.hpp"
+#include "../headers/RequestHandler.hpp"
 
 /* Canonical orthodox form */
 
@@ -161,8 +161,7 @@ Response RequestHandler::handleNotImplemented(void) {
 // 500 Internal Server Error	Erreur interne
 
 /* Handle GET request */
-Response RequestHandler::handleGet(const Request &request, const Config &config)
-{
+Response RequestHandler::handleGet(const Request &request, const Config &config) {
     (void)config;
 
     if (request.getUri() == "/") {

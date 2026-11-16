@@ -15,7 +15,8 @@ enum ParseResult
 {
     INCOMPLETE_REQUEST,
     COMPLETE_REQUEST,
-    INVALID_REQUEST
+    INVALID_REQUEST,
+    NOT_IMPLEMENTED
 };
 
 class RequestParser
@@ -35,6 +36,7 @@ class RequestParser
         int parseHeaders(const string& buffer, size_t start, size_t end, Request& request);
         int validateHeaders(Request& request);
         int parseContentLength(const string& value, size_t& length);
+        int parseChunkedBody(const string& buffer, size_t bodyStart, Request& request, size_t& consumed);
 
         /* Utils */
         static string trim(const string& str);

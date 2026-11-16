@@ -3,10 +3,10 @@
 #include <arpa/inet.h>
 
 /* HPP headers */
-#include "Main.hpp"
-#include "Client.hpp"
-#include "Server.hpp"
-#include "Response.hpp"
+#include "../headers/Main.hpp"
+#include "../headers/Client.hpp"
+#include "../headers/Server.hpp"
+#include "../headers/Response.hpp"
 
 /* Canonical orthodox form */
 
@@ -42,8 +42,7 @@ Server::~Server(void) {
  * Utils
  */
 /* Set the socket to non-blocking */
-int set_nonblocking(int fd)
-{
+int set_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
 
     if (flags < 0) {
@@ -60,8 +59,7 @@ int set_nonblocking(int fd)
 }
 
 /* Add a socket to pollfd */
-void add_pollfd(vector<struct pollfd> &fds, int fd)
-{
+void add_pollfd(vector<struct pollfd> &fds, int fd) {
     struct pollfd pfd;
 
     pfd.fd = fd;
@@ -72,8 +70,7 @@ void add_pollfd(vector<struct pollfd> &fds, int fd)
 }
 
 /* Receive data from a client and store it in the client read buffer */
-int Server::handleClient(Client &client)
-{
+int Server::handleClient(Client &client) {
     char buffer[BUFSIZE];
     int readCount = 0;
 
@@ -118,8 +115,7 @@ int Server::handleClient(Client &client)
 }
 
 /* Close and remove a client */
-void Server::removeClient(size_t index)
-{
+void Server::removeClient(size_t index) {
     int fd = fds[index].fd;
     close(fd);
     clientListeners.erase(fd);
@@ -127,8 +123,7 @@ void Server::removeClient(size_t index)
     fds.erase(fds.begin() + index);
 }
 
-bool Server::isListeningSocket(int fd) const
-{
+bool Server::isListeningSocket(int fd) const {
     for (size_t i = 0; i < serverSockets.size(); i++) {
         if (serverSockets[i].fd == fd)
             return true;
@@ -194,8 +189,7 @@ int Server::processNewConnections(int listeningFd) {
 }
 
 /* Send the response in writeBuffer to the client socket */
-int Server::sendResponse(Client &client)
-{
+int Server::sendResponse(Client &client) {
     const int MAX_SENDS = 10;
     int sendCount = 0;
 
@@ -237,8 +231,7 @@ int Server::sendResponse(Client &client)
 }
 
 /* Parse and process the client's HTTP request */
-bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
-{
+bool Server::processClientRequest(size_t index, Client &client, bool peerClosed) {
     while (!client.getReadBuffer().empty()) {
         size_t consumed = 0;
 
@@ -301,8 +294,7 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
 }
 
 /* Send response data to the client */
-bool Server::processClientWrite(size_t index, Client &client)
-{
+bool Server::processClientWrite(size_t index, Client &client) {
     if (sendResponse(client) < 0) {
         removeClient(index);
         return true;
@@ -322,8 +314,7 @@ bool Server::processClientWrite(size_t index, Client &client)
 }
 
 /* Receive data from an existing client */
-bool Server::processClientRead(size_t index, Client &client, bool &peerClosed)
-{
+bool Server::processClientRead(size_t index, Client &client, bool &peerClosed) {
     cout << "Entering processClientRead - fd " << client.getFd() << endl; // debug <<<---
     int ret = handleClient(client);
 
@@ -354,8 +345,7 @@ bool Server::processClientRead(size_t index, Client &client, bool &peerClosed)
 }
 
 /* Process existing client socket */
-bool Server::processClientEvent(size_t index)
-{
+bool Server::processClientEvent(size_t index) {
     int fd = fds[index].fd;
     short events = fds[index].revents;
 
@@ -399,8 +389,7 @@ bool Server::processClientEvent(size_t index)
 }
 
 /* Process events reported by poll */
-int Server::processEvents(void)
-{
+int Server::processEvents(void) {
     vector<int> listeningSockets;
 
     /* Check all sockets monitored by poll */
@@ -441,8 +430,7 @@ int Server::processEvents(void)
 }
 
 /* Main event loop */
-int Server::run(void)
-{
+int Server::run(void) {
     int status = 0;
     
     /* Add all listening sockets to the pollfd list */

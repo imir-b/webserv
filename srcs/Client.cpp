@@ -1,7 +1,7 @@
 
 /* HPP headers */
-#include "Main.hpp"
-#include "Client.hpp"
+#include "../headers/Main.hpp"
+#include "../headers/Client.hpp"
 
 /* Canonical orthodox form */
 
@@ -37,40 +37,33 @@ Client::~Client(void) {
 
 /* Getters */
 
-int Client::getFd(void) const
-{
+int Client::getFd(void) const {
     return fd;
 }
 
-const std::string& Client::getReadBuffer(void) const
-{
+const std::string& Client::getReadBuffer(void) const {
     return readBuffer;
 }
 
-const std::string& Client::getWriteBuffer(void) const
-{
+const std::string& Client::getWriteBuffer(void) const {
     return writeBuffer;
 }
 
-size_t Client::getBytesSent(void) const
-{
+size_t Client::getBytesSent(void) const {
     return bytesSent;
 }
 
-Request& Client::getRequest()
-{
+Request& Client::getRequest(void) {
     return request;
 }
 
-const Request& Client::getRequest() const
-{
+const Request& Client::getRequest(void) const {
     return request;
 }
 
 /* Buffer management methods */
 
-bool Client::appendReadBuffer(const char *data, size_t length)
-{
+bool Client::appendReadBuffer(const char *data, size_t length) {
     if (readBuffer.size() > MAX_READ_BUFFER_SIZE ||
         length > MAX_READ_BUFFER_SIZE - readBuffer.size())
         return false;
@@ -79,8 +72,7 @@ bool Client::appendReadBuffer(const char *data, size_t length)
     return true;
 }
 
-bool Client::appendWriteBuffer(const string& data)
-{
+bool Client::appendWriteBuffer(const string& data) {
     if (writeBuffer.size() > MAX_WRITE_BUFFER_SIZE ||
         data.size() > MAX_WRITE_BUFFER_SIZE - writeBuffer.size())
         return false;
@@ -89,50 +81,42 @@ bool Client::appendWriteBuffer(const string& data)
     return true;
 }
 
-void Client::consumeReadBuffer(size_t length)
-{
+void Client::consumeReadBuffer(size_t length) {
     if (length >= readBuffer.size())
         readBuffer.clear();
     else
         readBuffer.erase(0, length);
 }
 
-void Client::consumeWriteBuffer(size_t length)
-{
+void Client::consumeWriteBuffer(size_t length) {
     writeBuffer.erase(0, length);
 }
 
-void Client::clearReadBuffer(void)
-{
+void Client::clearReadBuffer(void) {
     readBuffer.clear();
 }
 
-void Client::clearWriteBuffer(void)
-{
+void Client::clearWriteBuffer(void) {
     writeBuffer.clear();
     bytesSent = 0;
 }
 
 /* Bytes sent management methods */
 
-void Client::addBytesSent(size_t bytes)
-{
+void Client::addBytesSent(size_t bytes) {
     bytesSent += bytes;
 }
 
-void Client::resetBytesSent(void)
-{
+void Client::resetBytesSent(void) {
     bytesSent = 0;
 }
 
 /* Close after response management methods */
 
-void Client::setCloseAfterResponse(bool close)
-{
+void Client::setCloseAfterResponse(bool close) {
     closeAfterResponse = close;
 }
 
-bool Client::shouldCloseAfterResponse() const
-{
+bool Client::shouldCloseAfterResponse(void) const {
     return closeAfterResponse;
 }

@@ -3,7 +3,7 @@
 #include <iostream>
 
 /* HPP headers */
-#include "LocationConfig.hpp"
+#include "../headers/LocationConfig.hpp"
 
 /* Canonical orthodox form */
 
@@ -89,22 +89,22 @@ void LocationConfig::setAutoIndex(bool value) {
 }
 
 /* Getters */
-const string &LocationConfig::getPath() const {
+const string &LocationConfig::getPath(void) const {
     return path;
 }
 
-const string &LocationConfig::getRoot() const {
+const string &LocationConfig::getRoot(void) const {
     return root;
 }
 
-const string &LocationConfig::getIndex() const {
+const string &LocationConfig::getIndex(void) const {
     return index;
 }
 
-const vector<string> &LocationConfig::getAllowedMethods() const {
+const vector<string> &LocationConfig::getAllowedMethods(void) const {
     return allowedMethods;
 }
 
-bool LocationConfig::getAutoIndex() const {
+bool LocationConfig::getAutoIndex(void) const {
     return autoindex;
 }

@@ -5,7 +5,7 @@
 #include <limits>
 
 /* HPP headers */
-#include "RequestParser.hpp"
+#include "../headers/RequestParser.hpp"
 
 using namespace std;
 
@@ -30,8 +30,7 @@ RequestParser::~RequestParser(void) {
  * Parsing utility functions
  */
 
-string RequestParser::trim(const string& str)
-{
+string RequestParser::trim(const string& str) {
     size_t start = str.find_first_not_of(" \t");
 
     if (start == string::npos)
@@ -42,8 +41,7 @@ string RequestParser::trim(const string& str)
     return str.substr(start, end - start + 1);
 }
 
-string RequestParser::toLower(const string& str)
-{
+string RequestParser::toLower(const string& str) {
     string result = str;
 
     for (size_t i = 0; i < result.size(); ++i)
@@ -56,8 +54,7 @@ string RequestParser::toLower(const string& str)
     return result;
 }
 
-bool RequestParser::isValidToken(const string& str)
-{
+bool RequestParser::isValidToken(const string& str) {
     const string separators = "()<>@,;:\\\"/[]?={} \t";
 
     if (str.empty())
@@ -80,8 +77,7 @@ bool RequestParser::isValidToken(const string& str)
  */
 
 /* Parse the first line of the request */
-int RequestParser::parseRequestLine(const string& line, Request& request)
-{
+int RequestParser::parseRequestLine(const string& line, Request& request) {
     size_t firstSpace = line.find(' ');
     size_t secondSpace = line.find(' ', firstSpace + 1);
 
@@ -125,33 +121,38 @@ int RequestParser::parseRequestLine(const string& line, Request& request)
 }
 
 /* Validate the request headers */
-int RequestParser::validateHeaders(Request& request)
-{
+int RequestParser::validateHeaders(Request& request) {
     /* HTTP/1.1 requires a Host header */
-    if (request.getHttpVersion() == "HTTP/1.1")
-    {
-        if (!request.hasHeader("host"))
-            return INVALID_REQUEST;
-
-        if (request.getHeader("host").empty())
+    if (request.getHttpVersion() == "HTTP/1.1") {
+        if (!request.hasHeader("host") ||
+            request.getHeader("host").empty())
             return INVALID_REQUEST;
     }
 
-    /* Reject requests containing both Transfer-Encoding and Content-Length */
-    if (request.hasHeader("transfer-encoding") &&
-        request.hasHeader("content-length"))
+    bool hasTransferEncoding = request.hasHeader("transfer-encoding");
+    bool hasContentLength = request.hasHeader("content-length");
+
+    /* Reject requests containing both headers */
+    if (hasTransferEncoding && hasContentLength)
         return INVALID_REQUEST;
 
-    /* Chunked encoding is not implemented yet */
-    if (request.hasHeader("transfer-encoding"))
-        return INVALID_REQUEST;
+    if (hasTransferEncoding) {
+        string encoding = toLower(trim(
+            request.getHeader("transfer-encoding")
+        ));
+
+        /* Only chunked encoding is supported */
+        if (encoding != "chunked")
+            return NOT_IMPLEMENTED;
+
+        request.setIsChunked(true);
+    }
 
     return COMPLETE_REQUEST;
 }
 
 /* Parse and validate the Content-Length header */
-int RequestParser::parseContentLength(const string& value, size_t& length)
-{
+int RequestParser::parseContentLength(const string& value, size_t& length) {
     if (value.empty())
         return INVALID_REQUEST;
 
@@ -173,9 +174,114 @@ int RequestParser::parseContentLength(const string& value, size_t& length)
     return COMPLETE_REQUEST;
 }
 
+/* Parse a chunked request body */
+int RequestParser::parseChunkedBody(const string& buffer, size_t bodyStart, Request& request, size_t& consumed) {
+    size_t pos = bodyStart;
+    string body;
+
+    while (true) {
+        /* Find the end of the chunk size line */
+        size_t lineEnd = buffer.find("\r\n", pos);
+
+        if (lineEnd == string::npos)
+            return INCOMPLETE_REQUEST;
+
+        string sizeLine = buffer.substr(pos, lineEnd - pos);
+
+        /* Ignore chunk extensions for now */
+        size_t extension = sizeLine.find(';');
+
+        if (extension != string::npos)
+            sizeLine.erase(extension);
+
+        if (sizeLine.empty())
+            return INVALID_REQUEST;
+
+        /* Parse the chunk size in hexadecimal */
+        size_t chunkSize = 0;
+
+        for (size_t i = 0; i < sizeLine.size(); ++i) {
+            unsigned char c = sizeLine[i];
+            size_t digit;
+
+            if (c >= '0' && c <= '9')
+                digit = c - '0';
+            else if (c >= 'a' && c <= 'f')
+                digit = c - 'a' + 10;
+            else if (c >= 'A' && c <= 'F')
+                digit = c - 'A' + 10;
+            else
+                return INVALID_REQUEST;
+
+            /* Check hexadecimal overflow */
+            if (chunkSize > (numeric_limits<size_t>::max() - digit) / 16)
+                return INVALID_REQUEST;
+
+            chunkSize = chunkSize * 16 + digit;
+        }
+
+        /* Move past the chunk size line */
+        pos = lineEnd + 2;
+
+        /* The last chunk has a size of zero */
+        if (chunkSize == 0) {
+            /* Read trailer headers until the empty line */
+            while (true) {
+                size_t trailerEnd = buffer.find("\r\n", pos);
+
+                if (trailerEnd == string::npos)
+                    return INCOMPLETE_REQUEST;
+
+                /* Empty line marks the end of the request */
+                if (trailerEnd == pos) {
+                    pos += 2;
+                    request.setBody(body);
+                    consumed = pos;
+                    return COMPLETE_REQUEST;
+                }
+
+                string trailer = buffer.substr(pos, trailerEnd - pos);
+
+                /* Validate trailer syntax */
+                size_t colon = trailer.find(':');
+
+                if (colon == string::npos ||
+                    !isValidToken(trailer.substr(0, colon)))
+                    return INVALID_REQUEST;
+
+                string name = toLower(trailer.substr(0, colon));
+
+                /* Framing headers are not allowed in trailers */
+                if (name == "content-length" ||
+                    name == "transfer-encoding" ||
+                    name == "host")
+                    return INVALID_REQUEST;
+
+                pos = trailerEnd + 2;
+            }
+        }
+
+        /* Check whether the complete chunk has been received */
+        if (chunkSize > buffer.size() - pos)
+            return INCOMPLETE_REQUEST;
+
+        /* Append the chunk data */
+        body.append(buffer, pos, chunkSize);
+        pos += chunkSize;
+
+        /* Each chunk must end with CRLF */
+        if (buffer.size() - pos < 2)
+            return INCOMPLETE_REQUEST;
+
+        if (buffer.compare(pos, 2, "\r\n") != 0)
+            return INVALID_REQUEST;
+
+        pos += 2;
+    }
+}
+
 /* Parse the request headers */
-int RequestParser::parseHeaders(const string& buffer, size_t start, size_t end, Request& request)
-{
+int RequestParser::parseHeaders(const string& buffer, size_t start, size_t end, Request& request) {
     size_t pos = start;
 
     while (pos < end)
@@ -256,8 +362,7 @@ int RequestParser::parseHeaders(const string& buffer, size_t start, size_t end, 
 }
 
 /* Main function to parse the request and validate its grammar */
-int RequestParser::parse(const string& buffer, Request& request, size_t& consumed)
-{
+int RequestParser::parse(const string& buffer, Request& request, size_t& consumed) {
     consumed = 0;
 
     /* Find the end of the headers */
@@ -292,11 +397,17 @@ int RequestParser::parse(const string& buffer, Request& request, size_t& consume
     if (validateHeaders(request) != COMPLETE_REQUEST)
         return INVALID_REQUEST;
 
+    /* Find the beginning of the request body */
+    size_t bodyStart = headerEnd + 4;
+
+    /* Parse chunked body */
+    if (request.getIsChunked())
+        return parseChunkedBody(buffer, bodyStart, request, consumed);
+
     /* Retrieve Content-Length */
     size_t contentLength = 0;
 
-    if (request.hasHeader("content-length"))
-    {
+    if (request.hasHeader("content-length")) {
         if (parseContentLength(
             request.getHeader("content-length"),
             contentLength) != COMPLETE_REQUEST)
@@ -304,8 +415,6 @@ int RequestParser::parse(const string& buffer, Request& request, size_t& consume
     }
 
     /* Check whether the complete body has been received */
-    size_t bodyStart = headerEnd + 4;
-
     if (contentLength > buffer.size() - bodyStart)
         return INCOMPLETE_REQUEST;
 

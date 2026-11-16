@@ -3,7 +3,7 @@
 #include <sstream>
 
 /* HPP headers */
-#include "Response.hpp"
+#include "../headers/Response.hpp"
 
 /* Canonical orthodox form */
 
@@ -30,26 +30,22 @@ Response::~Response(void) {
 }
 
 /* Set HTTP status code */
-void Response::setStatusCode(int code)
-{
+void Response::setStatusCode(int code) {
     statusCode = code;
 }
 
 /* Set or update a response header */
-void Response::setHeader(const string &name, const string &value)
-{
+void Response::setHeader(const string &name, const string &value) {
     headers[name] = value;
 }
 
 /* Set response body */
-void Response::setBody(const string &body)
-{
+void Response::setBody(const string &body) {
     this->body = body;
 }
 
 /* Get HTTP reason phrase corresponding to status code */
-string Response::getReasonPhrase(void) const
-{
+string Response::getReasonPhrase(void) const {
     switch (statusCode)
     {
         case HTTP_OK:
@@ -85,8 +81,7 @@ string Response::getReasonPhrase(void) const
 }
 
 /* Convert Response object into a raw HTTP response */
-string Response::serialize(void) const
-{
+string Response::serialize(void) const {
     ostringstream response;
 
     /* Status line */
