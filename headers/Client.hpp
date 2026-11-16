@@ -29,8 +29,10 @@ class Client
         Request request;
 
     public:
-        /* Constructor */
+        /* Canonical orthodox form */
         Client(int fd);
+        Client(const Client &client);
+        Client &operator=(const Client &client);
         ~Client();
 
         /* Getters */

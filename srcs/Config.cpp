@@ -3,10 +3,41 @@
 #include "Config.hpp"
 #include "Main.hpp"
 
-/* Constructor */
-Config::Config() : listen(PORT), serverName("localhost"), root("./www"), index("index.html"), clientMaxBodySize(DEFAULT_MAX_BODY_SIZE) {}
+/* Canonical orthodox form */
 
-Config::~Config() {}
+Config::Config(void)
+    : listen(PORT),
+    serverName("localhost"),
+    root("./www"),
+    index("index.html"),
+    clientMaxBodySize(DEFAULT_MAX_BODY_SIZE) {
+}
+
+Config::Config(const Config &config)
+    : listen(config.listen),
+    host(config.host),
+    serverName(config.serverName),
+    root(config.root),
+    index(config.index),
+    clientMaxBodySize(config.clientMaxBodySize),
+    locations(config.locations) {
+}
+
+Config &Config::operator=(const Config &config) {
+    if (this != &config) {
+        listen = config.listen;
+        host = config.host;
+        serverName = config.serverName;
+        root = config.root;
+        index = config.index;
+        clientMaxBodySize = config.clientMaxBodySize;
+        locations = config.locations;
+    }
+    return *this;
+}
+
+Config::~Config(void) {
+}
 
 /* Ostream */
 

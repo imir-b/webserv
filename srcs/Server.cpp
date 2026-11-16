@@ -8,11 +8,35 @@
 #include "Server.hpp"
 #include "Response.hpp"
 
-/* Constructor */
+/* Canonical orthodox form */
 
-Server::Server(void) {}
+Server::Server(void) {
+}
 
-Server::~Server(void) {}
+Server::Server(const Server &server)
+    : serverSockets(server.serverSockets),
+    clientListeners(server.clientListeners),
+    fds(server.fds), clients(server.clients),
+    configs(server.configs),
+    requestParser(server.requestParser),
+    requestHandler(server.requestHandler) {
+}
+
+Server &Server::operator=(const Server &server) {
+    if (this != &server) {
+        serverSockets = server.serverSockets;
+        clientListeners = server.clientListeners;
+        fds = server.fds;
+        clients = server.clients;
+        configs = server.configs;
+        requestParser = server.requestParser;
+        requestHandler = server.requestHandler;
+    }
+    return *this;
+}
+
+Server::~Server(void) {
+}
 
 /**
  * Utils

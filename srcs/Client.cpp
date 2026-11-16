@@ -3,11 +3,37 @@
 #include "Main.hpp"
 #include "Client.hpp"
 
-/* Constructor */
+/* Canonical orthodox form */
 
-Client::Client(int fd) : fd(fd), bytesSent(0), closeAfterResponse(false) {}
+Client::Client(int fd)
+    : fd(fd),
+    bytesSent(0),
+    closeAfterResponse(false) {
+}
 
-Client::~Client(void) {}
+Client::Client(const Client &client)
+    : fd(client.fd),
+    readBuffer(client.readBuffer),
+    writeBuffer(client.writeBuffer),
+    bytesSent(client.bytesSent),
+    closeAfterResponse(client.closeAfterResponse),
+    request(client.request) {
+}
+
+Client &Client::operator=(const Client &client) {
+    if (this != &client) {
+        fd = client.fd;
+        readBuffer = client.readBuffer;
+        writeBuffer = client.writeBuffer;
+        bytesSent = client.bytesSent;
+        closeAfterResponse = client.closeAfterResponse;
+        request = client.request;
+    }
+    return *this;
+}
+
+Client::~Client(void) {
+}
 
 /* Getters */
 

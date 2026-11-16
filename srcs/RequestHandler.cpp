@@ -3,11 +3,22 @@
 #include "Config.hpp"
 #include "RequestHandler.hpp"
 
-/* Constructor */
+/* Canonical orthodox form */
 
-RequestHandler::RequestHandler() {}
+RequestHandler::RequestHandler(void) {
+}
 
-RequestHandler::~RequestHandler() {}
+RequestHandler::RequestHandler(const RequestHandler &requestHandler) {
+    (void) requestHandler;
+}
+
+RequestHandler &RequestHandler::operator=(const RequestHandler &requestHandler) {
+    (void) requestHandler;
+    return *this;
+}
+
+RequestHandler::~RequestHandler(void) {
+}
 
 /* Process the client's request and prepare the HTTP response */
 Response RequestHandler::process(const Request &request, const Config &config) {

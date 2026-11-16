@@ -18,8 +18,10 @@ class Request {
         int status;
 
     public:
-        /* Constructor */
+        /* Canonical orthodox form */
         Request();
+        Request(const Request &request);
+        Request &operator=(const Request &request);
         ~Request();
 
         /* Getters */

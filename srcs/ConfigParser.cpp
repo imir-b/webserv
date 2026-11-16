@@ -10,9 +10,22 @@
 /* HPP headers */
 #include "ConfigParser.hpp"
 
-ConfigParser::ConfigParser() {}
+/* Canonical orthodox form */
 
-ConfigParser::~ConfigParser() {}
+ConfigParser::ConfigParser(void) {
+}
+
+ConfigParser::ConfigParser(const ConfigParser &configParser) {
+    (void)configParser;
+}
+
+ConfigParser &ConfigParser::operator=(const ConfigParser &configParser) {
+    (void)configParser;
+    return *this;
+}
+
+ConfigParser::~ConfigParser(void) {
+}
 
 bool ConfigParser::isSeparator(char c) const
 {

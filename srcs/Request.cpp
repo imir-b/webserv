@@ -5,11 +5,37 @@
 /* HPP headers */
 #include "Request.hpp"
 
-/* Constructor */
+/* Canonical orthodox form */
 
-Request::Request() : status(0) {}
+Request::Request(void)
+    : status(0) {
+}
 
-Request::~Request() {}
+Request::Request(const Request &request) 
+    : method(request.method),
+    uri(request.uri),
+    httpVersion(request.httpVersion),
+    headers(request.headers),
+    body(request.body),
+    status(request.status) {
+}
+
+Request &Request::operator=(const Request &request) {
+    if (this != &request) {
+        method = request.method;
+        uri = request.uri;
+        httpVersion = request.httpVersion;
+        headers = request.headers;
+        body = request.body;
+        status = request.status;
+    }
+    return *this;
+}
+
+Request::~Request(void) {
+}
+
+/* Ostream */
 
 ostream &operator<<(ostream &os, const Request &request)
 {
@@ -41,6 +67,8 @@ ostream &operator<<(ostream &os, const Request &request)
 
     return os;
 }
+
+/* Getters */
 
 const string& Request::getMethod() const
 {
@@ -80,6 +108,8 @@ int Request::getStatus() const
     return status;
 }
 
+/* Setters */
+
 void Request::setMethod(const string& value)
 {
     method = value;
@@ -110,7 +140,8 @@ void Request::addHeader(const string& key, const string& value)
     headers[key] = value;
 }
 
-/* Set or replace a header */
+/* Header management */
+
 void Request::setHeader(const string& key, const string& value)
 {
     headers[key] = value;

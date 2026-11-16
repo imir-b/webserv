@@ -5,10 +5,36 @@
 /* HPP headers */
 #include "LocationConfig.hpp"
 
-/* Constructor */
-LocationConfig::LocationConfig() : path("/"), root(""), index("index.html"), autoindex(false) {}
+/* Canonical orthodox form */
 
-LocationConfig::~LocationConfig() {}
+LocationConfig::LocationConfig(void)
+    : path("/"),
+    root(""),
+    index("index.html"),
+    autoindex(false) {
+}
+
+LocationConfig::LocationConfig(const LocationConfig &locationConfig) 
+    : path(locationConfig.path),
+    root(locationConfig.root),
+    index(locationConfig.index),
+    allowedMethods(locationConfig.allowedMethods),
+    autoindex(locationConfig.autoindex) {
+}
+
+LocationConfig &LocationConfig::operator=(const LocationConfig &locationConfig) {
+    if (this != &locationConfig) {
+        path = locationConfig.path;
+        root = locationConfig.root;
+        index = locationConfig.index;
+        allowedMethods = locationConfig.allowedMethods;
+        autoindex = locationConfig.autoindex;
+    }
+    return *this;
+}
+
+LocationConfig::~LocationConfig(void) {
+}
 
 /* Ostream */
 

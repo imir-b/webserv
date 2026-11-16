@@ -28,8 +28,10 @@ class Response
         string body;
 
     public:
-        /* Constructor */
+        /* Canonical orthodox form */
         Response();
+        Response(const Response &response);
+        Response &operator=(const Response &response);
         ~Response();
 
         /* Setters */

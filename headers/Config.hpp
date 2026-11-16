@@ -21,8 +21,10 @@ class Config {
         vector<LocationConfig> locations;
 
     public:
-        /* Constructor */
+        /* Canonical orthodox form */
         Config();
+        Config(const Config &config);
+        Config &operator=(const Config &config);
         ~Config();
 
         /* Setters */

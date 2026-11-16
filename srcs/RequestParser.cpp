@@ -9,11 +9,22 @@
 
 using namespace std;
 
-/* Constructor */
+/* Canonical orthodox form */
 
-RequestParser::RequestParser() {}
+RequestParser::RequestParser(void) {
+}
 
-RequestParser::~RequestParser() {}
+RequestParser::RequestParser(const RequestParser &requestParser) {
+    (void)requestParser;
+}
+
+RequestParser &RequestParser::operator=(const RequestParser &requestHandler) {
+    (void) requestHandler;
+    return *this;
+}
+
+RequestParser::~RequestParser(void) {
+}
 
 /**
  * Parsing utility functions

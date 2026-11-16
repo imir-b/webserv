@@ -21,8 +21,10 @@ enum ParseResult
 class RequestParser
 {
     public:
-        /* Constructor */
+        /* Canonical orthodox form */
         RequestParser();
+        RequestParser(const RequestParser &requestParser);
+        RequestParser &operator=(const RequestParser &requestParser);
         ~RequestParser();
         /* Main function for parsing */
         int parse(const string& buffer, Request& request, size_t& consumed);

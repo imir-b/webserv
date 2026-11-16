@@ -15,8 +15,10 @@ class LocationConfig {
         bool autoindex;
 
     public:
-        /* Constructor */
+        /* Canonical orthodox form */
         LocationConfig();
+        LocationConfig(const LocationConfig &locationConfig);
+        LocationConfig &operator=(const LocationConfig &locationConfig);
         ~LocationConfig();
 
         /* Setters */

@@ -45,8 +45,10 @@ class Server {
         RequestHandler requestHandler;
 
     public:
-        /* Constructor */
+        /* Canonical orthodox form */
         Server();
+        Server(const Server &server);
+        Server &operator=(const Server &server);
         ~Server();
 
         /* Configs */

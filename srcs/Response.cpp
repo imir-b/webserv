@@ -5,10 +5,29 @@
 /* HPP headers */
 #include "Response.hpp"
 
-/* Constructor */
-Response::Response() : statusCode(HTTP_OK) {}
+/* Canonical orthodox form */
 
-Response::~Response() {}
+Response::Response(void)
+    : statusCode(HTTP_OK) {
+}
+
+Response::Response(const Response &response)
+    : statusCode(response.statusCode),
+    headers(response.headers),
+    body(response.body) {
+}
+
+Response &Response::operator=(const Response &response) {
+    if (this != &response) {
+        statusCode = response.statusCode;
+        headers = response.headers;
+        body = response.body;
+    }
+    return *this;
+}
+
+Response::~Response(void) {
+}
 
 /* Set HTTP status code */
 void Response::setStatusCode(int code)
