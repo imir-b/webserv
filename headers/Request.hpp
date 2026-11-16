@@ -40,6 +40,7 @@ class Request {
         /* Methods */
         void addHeader(const string& key, const string& value);
         bool hasHeader(const string &name) const;
+        void setHeader(const string& key, const string& value);
         void reset();
 
     friend ostream &operator<<(ostream &os, Request const &request);

@@ -223,11 +223,14 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
         if (ret == INCOMPLETE_REQUEST) {
             /* Client disconnected before completing the request */
             if (peerClosed) {
-                if (sendErrorBadRequest(client) < 0) {
+                Response response = requestHandler.processError(HTTP_BAD_REQUEST);
+
+                if (!client.appendWriteBuffer(response.serialize())) {
                     removeClient(index);
                     return true;
                 }
 
+                client.setCloseAfterResponse(true);
                 fds[index].events |= POLLOUT;
             }
 

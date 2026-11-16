@@ -110,6 +110,12 @@ void Request::addHeader(const string& key, const string& value)
     headers[key] = value;
 }
 
+/* Set or replace a header */
+void Request::setHeader(const string& key, const string& value)
+{
+    headers[key] = value;
+}
+
 bool Request::hasHeader(const string& name) const
 {
     return headers.find(name) != headers.end();

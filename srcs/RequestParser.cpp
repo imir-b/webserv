@@ -205,9 +205,36 @@ int RequestParser::parseHeaders(const string& buffer, size_t start, size_t end, 
         /* Normalize the header name to lowercase */
         name = toLower(name);
 
-        /* Reject duplicate headers in this initial implementation */
-        if (request.hasHeader(name)) // Certains headers HTTP peuvent légitimement apparaître plusieurs fois <<<---
-            return INVALID_REQUEST;
+        /* Handle duplicate headers */
+        if (request.hasHeader(name))
+        {
+            /* Host and Content-Length must not be duplicated */
+            if (name == "host" || name == "content-length")
+                return INVALID_REQUEST;
+
+            /* Transfer-Encoding is not supported yet */
+            if (name == "transfer-encoding")
+                return INVALID_REQUEST;
+
+            /* Cookie values are separated with semicolons */
+            if (name == "cookie")
+                value = request.getHeader(name) + "; " + value;
+
+            /* Other supported list headers are separated with commas */
+            else if (name == "accept" ||
+                    name == "accept-encoding" ||
+                    name == "connection")
+                value = request.getHeader(name) + ", " + value;
+
+            else
+                return INVALID_REQUEST;
+
+            request.setHeader(name, value);
+        }
+        else
+        {
+            request.addHeader(name, value);
+        }
 
         request.addHeader(name, value);
 
