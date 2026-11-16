@@ -5,7 +5,7 @@
 #include <cstddef>
 
 /* HPP headers */
-#include "../headers/Request.hpp"
+#include "Request.hpp"
 
 /* Buffer limits */
 #define MAX_HEADER_SIZE (16 * 1024)       // 16 KiB

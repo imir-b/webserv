@@ -1,7 +1,7 @@
 #pragma once
 
 /* HPP headers */
-#include "../headers/Server.hpp"
+#include "Server.hpp"
 
 /* C++ includes */
 #include <string>

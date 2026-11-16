@@ -1,9 +1,9 @@
 #pragma once
 
 /* HPP headers */
-#include "../headers/Request.hpp"
-#include "../headers/Response.hpp"
-#include "../headers/Config.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Config.hpp"
 
 class RequestHandler
 {

@@ -1,7 +1,7 @@
 #pragma once
 
 /* HPP headers */
-#include "../headers/LocationConfig.hpp"
+#include "LocationConfig.hpp"
 
 /* C++ includes */
 #include <map>

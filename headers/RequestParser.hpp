@@ -6,7 +6,7 @@
 #include <cstddef>
 
 /* HPP headers */
-#include "../headers/Request.hpp"
+#include "Request.hpp"
 
 using namespace std;
 
