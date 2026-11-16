@@ -8,7 +8,7 @@
 #include <limits>
 
 /* HPP headers */
-#include "ConfigParser.hpp"
+#include "../headers/ConfigParser.hpp"
 
 ConfigParser::ConfigParser() {}
 

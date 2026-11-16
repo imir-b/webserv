@@ -3,10 +3,10 @@
 #include <arpa/inet.h>
 
 /* HPP headers */
-#include "Main.hpp"
-#include "Client.hpp"
-#include "Server.hpp"
-#include "Response.hpp"
+#include "../headers/Main.hpp"
+#include "../headers/Client.hpp"
+#include "../headers/Server.hpp"
+#include "../headers/Response.hpp"
 
 /* Constructor */
 

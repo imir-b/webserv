@@ -1,7 +1,7 @@
 
 /* HPP headers */
-#include "Config.hpp"
-#include "Main.hpp"
+#include "../headers/Config.hpp"
+#include "../headers/Main.hpp"
 
 /* Constructor */
 Config::Config() : listen(PORT), serverName("localhost"), root("./www"), index("index.html"), clientMaxBodySize(DEFAULT_MAX_BODY_SIZE) {}

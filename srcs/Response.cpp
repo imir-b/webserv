@@ -3,7 +3,7 @@
 #include <sstream>
 
 /* HPP headers */
-#include "Response.hpp"
+#include "../headers/Response.hpp"
 
 /* Constructor */
 Response::Response() : statusCode(HTTP_OK) {}

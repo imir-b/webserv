@@ -3,7 +3,7 @@
 #include <iostream>
 
 /* HPP headers */
-#include "LocationConfig.hpp"
+#include "../headers/LocationConfig.hpp"
 
 /* Constructor */
 LocationConfig::LocationConfig() : path("/"), root(""), index("index.html"), autoindex(false) {}
