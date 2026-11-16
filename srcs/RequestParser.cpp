@@ -1,5 +1,7 @@
 
 /* C++ includes */
+#include <iostream>
+#include <ostream>
 #include <string>
 #include <cctype>
 #include <limits>

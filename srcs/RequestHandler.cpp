@@ -66,7 +66,6 @@ Response RequestHandler::handleGet(const Request &request, const Config &config)
 		std::ifstream file("www/index.html");
 		if (file.is_open()) {
 			std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-			std::cout << "BODYYYYY\n\n" << content << std::endl; // <<<--- debug
 			response.setBody(content);
 			std::cout << content << "\n";
 
@@ -98,6 +97,7 @@ Response RequestHandler::handleGet(const Request &request, const Config &config)
     response.setHeader("Connection", "close");
 
 	std::cout << "GET A GERER\n";
+	// pour l instant on check les uri et on renvoie un fichier ou un message d erreur, mais plus tard il faudra gerer les redirections, les fichiers statiques, les fichiers dynamiques, etc.
 
     return response;
 }

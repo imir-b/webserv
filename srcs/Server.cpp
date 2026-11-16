@@ -261,7 +261,11 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
             break;
         }
 
+		std::cout << "===========================================================================" << std::endl;
+		std::cout << "FULL REQUEST HERE" << std::endl;
+		std::cout << "===========================================================================" << std::endl;
         cout << client.getRequest() << endl;
+		std::cout << "===========================================================================" << std::endl;
 
         const Config &config = selectConfig(client.getRequest(), client.getFd());
         Response response = requestHandler.process(client.getRequest(), config);
