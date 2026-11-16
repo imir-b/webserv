@@ -60,7 +60,7 @@ int Server::handleClient(Client &client)
         if (bytes > 0)
         {
             if (!client.appendReadBuffer(buffer, static_cast<size_t>(bytes)))
-                return CLIENT_ERROR; // A remplacer plus tard par une gestion HTTP 413 <<<---
+                return CLIENT_TOO_LARGE;
             cout << endl << "Read buffer client (fd " << client.getFd() << "): " << endl;
             cout.write(client.getReadBuffer().data(), client.getReadBuffer().size());
             cout << endl;
@@ -169,22 +169,6 @@ int Server::processNewConnections(int listeningFd) {
     return 0;
 }
 
-/* Prepare a 400 Bad Request response */
-int Server::sendErrorBadRequest(Client &client)
-{
-    Response response;
-
-    response.setStatusCode(HTTP_BAD_REQUEST);
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("Connection", "close");
-    response.setBody("400 Bad Request\n");
-
-    if (!client.appendWriteBuffer(response.serialize()))
-        return -1;
-    client.setCloseAfterResponse(true);
-
-    return 0;
-}
 /* Send the response in writeBuffer to the client socket */
 int Server::sendResponse(Client &client)
 {
@@ -252,11 +236,14 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
 
         if (ret == INVALID_REQUEST || consumed == 0) {
             /* Prepare a 400 Bad Request response */
-            if (sendErrorBadRequest(client) < 0) {
+            Response response = requestHandler.processError(HTTP_BAD_REQUEST);
+
+            if (!client.appendWriteBuffer(response.serialize())) {
                 removeClient(index);
                 return true;
             }
 
+            client.setCloseAfterResponse(true);
             fds[index].events |= POLLOUT;
             break;
         }
@@ -267,9 +254,12 @@ bool Server::processClientRequest(size_t index, Client &client, bool peerClosed)
         Response response = requestHandler.process(client.getRequest(), config);
         
         client.consumeReadBuffer(consumed);
+        /* Remove the client if the response can't be stored */
         if (!client.appendWriteBuffer(response.serialize())) {
-            return false; // supprimer le client proprement <<<---
+            removeClient(index);
+            return true;
         }
+
         client.setCloseAfterResponse(true);
 
         /* Enable POLLOUT when response is ready */
@@ -313,6 +303,20 @@ bool Server::processClientRead(size_t index, Client &client, bool &peerClosed)
     if (ret == CLIENT_ERROR) {
         removeClient(index);
         return true;
+    }
+
+    /* Prepare a 413 Content Too Large response */
+    if (ret == CLIENT_TOO_LARGE) {
+        Response response = requestHandler.processError(HTTP_PAYLOAD_TOO_LARGE);
+
+        if (!client.appendWriteBuffer(response.serialize())) {
+            removeClient(index);
+            return true;
+        }
+
+        client.setCloseAfterResponse(true);
+        fds[index].events = POLLOUT;
+        return false;
     }
 
     /* Client has closed its sending side */
@@ -372,16 +376,20 @@ int Server::processEvents(void)
 {
     vector<int> listeningSockets;
 
+    /* Check all sockets monitored by poll */
     for (size_t i = 0; i < fds.size(); ) {
         int fd = fds[i].fd;
         short events = fds[i].revents;
 
+        /* Handle listening sockets */
         if (isListeningSocket(fd)) {
+            /* Check for listening socket errors */
             if (events & (POLLERR | POLLHUP | POLLNVAL)) {
                 cerr << "Listening socket error" << endl;
                 return -1;
             }
 
+            /* Store sockets with pending incoming connections */
             if (events & POLLIN)
                 listeningSockets.push_back(fd);
 
@@ -389,12 +397,14 @@ int Server::processEvents(void)
             continue;
         }
 
+        /* Process events on client sockets */
         if (processClientEvent(i))
             continue;
 
         ++i;
     }
 
+    /* Accept new connections on listening sockets */
     for (size_t i = 0; i < listeningSockets.size(); i++) {
         if (processNewConnections(listeningSockets[i]) < 0)
             return -1;
@@ -408,12 +418,13 @@ int Server::run(void)
 {
     int status = 0;
     
+    /* Add all listening sockets to the pollfd list */
     for (size_t i = 0; i < serverSockets.size(); i++) {
         add_pollfd(fds, serverSockets[i].fd);
         cout << "active server socket : " << serverSockets[i].fd << endl; // <<<--- debug
     }
 
-    
+    /* Poll and process events */
     while (true) {
         int ret = poll(&fds[0], fds.size(), -1);
 
@@ -440,6 +451,7 @@ int Server::run(void)
 }
 
 int Server::setupSocket(const string &host, int port) {
+    /* Create a TCP socket */
     int sock = socket(AF_INET, SOCK_STREAM, 0);
 
     if (sock < 0) {
@@ -447,6 +459,7 @@ int Server::setupSocket(const string &host, int port) {
         return -1;
     }
 
+    /* Allow the socket to reuse the address */
     int opt = 1;
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt");
@@ -454,28 +467,33 @@ int Server::setupSocket(const string &host, int port) {
         return -1;
     }
 
+    /* Set the socket address and port */
     sockaddr_in address = {};
     address.sin_family = AF_INET;
     address.sin_port = htons(port);
 
+    /* Convert the IP address to the required format */
     if (inet_pton(AF_INET, host.c_str(), &address.sin_addr) != 1) {
         cerr << "Invalid IP address: " << host << endl;
         close(sock);
         return -1;
     }
 
+    /* Bind the socket to the specified IP address and port */
     if (bind(sock, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("bind");
         close(sock);
         return -1;
     }
 
+    /* Put the socket in listening mode */
     if (listen(sock, BACKLOG) < 0) {
         perror("listen");
         close(sock);
         return -1;
     }
 
+    /* Set the socket to non-blocking mode */
     if (set_nonblocking(sock) < 0) {
         close(sock);
         return -1;
@@ -485,9 +503,11 @@ int Server::setupSocket(const string &host, int port) {
 }
 
 int Server::setupSockets(void) {
+    /* Create one listening socket for each unique host and port */
     for (size_t i = 0; i < configs.size(); i++) {
         bool alreadyExists = false;
 
+        /* Check if a socket already exists for this address */
         for (size_t j = 0; j < serverSockets.size(); j++) {
             if (serverSockets[j].host == configs[i].getHost()
                 && serverSockets[j].port == configs[i].getListen()) {
@@ -496,14 +516,17 @@ int Server::setupSockets(void) {
             }
         }
 
+        /* Skip this configuration if the socket already exists */
         if (alreadyExists)
             continue;
 
+        /* Create a new listening socket */
         int sock = setupSocket(configs[i].getHost(), configs[i].getListen());
 
         if (sock < 0)
             return -1;
 
+        /* Store the new listening socket information */
         ListeningSocket listening;
 
         listening.fd = sock;
@@ -516,11 +539,12 @@ int Server::setupSockets(void) {
     return 0;
 }
 
+/* Push config to server configs */
 void Server::addConfig(const Config &config) {
     configs.push_back(config);
 }
 
-const vector<Config> &Server::getConfigs() const {
+const vector<Config> &Server::getConfigs(void) const {
     return configs;
 }
 

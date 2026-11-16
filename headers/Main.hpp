@@ -33,4 +33,5 @@ using namespace std;
 #define CLIENT_CONNECTED 0
 #define CLIENT_DISCONNECTED 1
 #define CLIENT_ERROR -1
+#define CLIENT_TOO_LARGE -2
 
