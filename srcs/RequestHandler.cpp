@@ -1,6 +1,8 @@
 
 /* HPP headers*/
 #include "../headers/Config.hpp"
+#include <iostream>
+#include <fstream>
 #include "../headers/RequestHandler.hpp"
 
 /* Constructor */
@@ -59,15 +61,43 @@ Response RequestHandler::handleGet(const Request &request, const Config &config)
 
     if (request.getUri() == "/") {
         response.setStatusCode(HTTP_OK);
-        response.setBody("Hello World!\n");
+        // response.setBody("Hello World!\n");
+
+		std::ifstream file("www/index.html");
+		if (file.is_open()) {
+			std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+			std::cout << "BODYYYYY\n\n" << content << std::endl; // <<<--- debug
+			response.setBody(content);
+			std::cout << content << "\n";
+
+			file.close();
+		}
+		response.setHeader("Content-Type", "text/html"); // <<<--- car index.html est de ce type mais plus tard il faut gerer en parsant l extension du fichier: c est ca le MIME type
+
     }
+	else if (request.getUri() == "/test") {
+		response.setStatusCode(HTTP_OK);
+		response.setBody("Test page\n");
+		response.setHeader("Content-Type", "text/plain");
+	}
+	else if (request.getUri() == "/eminem") {
+		response.setStatusCode(HTTP_OK);
+		std::ifstream file("www/eminem.png", std::ios::binary);
+		if (file.is_open()) {
+			std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+			response.setBody(content);
+			file.close();
+		}
+		response.setHeader("Content-Type", "image/png");
+	}
     else {
         response.setStatusCode(HTTP_NOT_FOUND);
         response.setBody("Not Found\n");
     }
 
-    response.setHeader("Content-Type", "text/plain");
     response.setHeader("Connection", "close");
+
+	std::cout << "GET A GERER\n";
 
     return response;
 }
@@ -90,6 +120,8 @@ Response RequestHandler::handlePost(const Request &request, const Config &config
     response.setHeader("Content-Type", "text/plain");
     response.setHeader("Connection", "close");
 
+	std::cout << "POST A GERER\n";
+
     return response;
 }
 
@@ -105,6 +137,8 @@ Response RequestHandler::handleDelete(const Request &request, const Config &conf
     response.setHeader("Connection", "close");
 
     response.setBody("DELETE is not implemented yet\n");
+
+	std::cout << "DELETE A GERER\n";
 
     return response;
 }
