@@ -14,10 +14,10 @@
 #include <algorithm>
 
 /* HPP headers */
-#include "Client.hpp"
-#include "Config.hpp"
-#include "RequestParser.hpp"
-#include "RequestHandler.hpp"
+#include "../headers/Client.hpp"
+#include "../headers/Config.hpp"
+#include "../headers/RequestParser.hpp"
+#include "../headers/RequestHandler.hpp"
 
 using namespace std;
 
