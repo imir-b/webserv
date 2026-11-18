@@ -14,8 +14,9 @@ class RequestHandler
         Response process(const Request &request, const Config &config);
 
     private:
-        Response handleGet(const Request &request, const Config &config);
-        Response handlePost(const Request &request, const Config &config);
-        Response handleDelete(const Request &request, const Config &config);
-        Response handleMethodNotAllowed();
+        Response handleGet(Response responce, const Request &request, const Config &config);
+        Response handlePost(Response responce, const Request &request, const Config &config);
+        Response handleDelete(Response responce, const Request &request, const Config &config);
+        Response handleMethodNotAllowed(Response responce);
+		void setMimeType(Response &response, const string &uri);
 };

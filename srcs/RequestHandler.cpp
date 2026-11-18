@@ -11,25 +11,59 @@ RequestHandler::RequestHandler() {}
 
 RequestHandler::~RequestHandler() {}
 
+/* Set MIME type based on the file extension */
+void RequestHandler::setMimeType(Response &response, const string &uri)
+{
+	size_t dotPos = uri.find_last_of('.');
+	if (dotPos != string::npos)
+	{
+		string extension = uri.substr(dotPos + 1);
+		if (extension == "html" || extension == "htm")
+			response.setHeader("Content-Type", "text/html");
+		else if (extension == "css")
+			response.setHeader("Content-Type", "text/css");
+		else if (extension == "js")
+			response.setHeader("Content-Type", "application/javascript");
+		else if (extension == "json")
+			response.setHeader("Content-Type", "application/json");
+		else if (extension == "png")
+			response.setHeader("Content-Type", "image/png");
+		else if (extension == "jpg" || extension == "jpeg")
+			response.setHeader("Content-Type", "image/jpeg");
+		else if (extension == "gif")
+			response.setHeader("Content-Type", "image/gif");
+		else if (extension == "txt")
+			response.setHeader("Content-Type", "text/plain");
+		else
+			response.setHeader("Content-Type", "application/octet-stream"); // Default MIME type
+	}
+	else
+	{
+		response.setHeader("Content-Type", "application/octet-stream"); // Default MIME type
+	}
+}
+
 /* Process the client's request and prepare the HTTP response */
 Response RequestHandler::process(const Request &request, const Config &config)
 {
+	Response response;
+
     if (request.getMethod() == "GET")
-        return handleGet(request, config);
+        return handleGet(response, request, config);
 
     if (request.getMethod() == "POST")
-        return handlePost(request, config);
+        return handlePost(response, request, config);
 
     if (request.getMethod() == "DELETE")
-        return handleDelete(request, config);
+        return handleDelete(response, request, config);
 
-    return handleMethodNotAllowed();
+    return handleMethodNotAllowed(response);
 }
 
 /* Handle unsupported HTTP method */
-Response RequestHandler::handleMethodNotAllowed(void)
+Response RequestHandler::handleMethodNotAllowed(Response response)
 {
-    Response response;
+	(void)response;
 
     response.setStatusCode(HTTP_METHOD_NOT_ALLOWED);
     response.setHeader("Content-Type", "text/plain");
@@ -54,9 +88,8 @@ Response RequestHandler::handleMethodNotAllowed(void)
 // 500 Internal Server Error	Erreur interne
 
 /* Handle GET request */
-Response RequestHandler::handleGet(const Request &request, const Config &config)
+Response RequestHandler::handleGet(Response response, const Request &request, const Config &config)
 {
-    Response response;
     (void) config;
 
     if (request.getUri() == "/") {
@@ -67,11 +100,11 @@ Response RequestHandler::handleGet(const Request &request, const Config &config)
 		if (file.is_open()) {
 			std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 			response.setBody(content);
-			std::cout << content << "\n";
+			// std::cout << content << "\n"; // <<<--- debug
 
 			file.close();
 		}
-		response.setHeader("Content-Type", "text/html"); // <<<--- car index.html est de ce type mais plus tard il faut gerer en parsant l extension du fichier: c est ca le MIME type
+		// response.setHeader("Content-Type", "text/html"); // <<<--- car index.html est de ce type mais plus tard il faut gerer en parsant l extension du fichier: c est ca le MIME type
 
     }
 	else if (request.getUri() == "/test") {
@@ -81,7 +114,7 @@ Response RequestHandler::handleGet(const Request &request, const Config &config)
 	}
 	else if (request.getUri() == "/eminem") {
 		response.setStatusCode(HTTP_OK);
-		std::ifstream file("www/eminem.png", std::ios::binary);
+		std::ifstream file("www/eminem.png");
 		if (file.is_open()) {
 			std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 			response.setBody(content);
@@ -103,9 +136,8 @@ Response RequestHandler::handleGet(const Request &request, const Config &config)
 }
 
 /* Handle POST request */
-Response RequestHandler::handlePost(const Request &request, const Config &config)
+Response RequestHandler::handlePost(Response response, const Request &request, const Config &config)
 {
-    Response response;
     (void) config;
 
     if (request.getBody().size() > config.getClientMaxBodySize()) {
@@ -126,9 +158,8 @@ Response RequestHandler::handlePost(const Request &request, const Config &config
 }
 
 /* Handle DELETE request */
-Response RequestHandler::handleDelete(const Request &request, const Config &config)
+Response RequestHandler::handleDelete(Response response, const Request &request, const Config &config)
 {
-    Response response;
     (void)request;
     (void)config;
 
