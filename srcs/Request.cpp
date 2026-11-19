@@ -1,5 +1,6 @@
 
 /* C++ includes */
+#include <iostream>
 #include <ostream>
 
 /* HPP headers */

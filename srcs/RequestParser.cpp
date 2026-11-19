@@ -96,6 +96,8 @@ int RequestParser::parseRequestLine(const string& line, Request& request)
     if (uri.empty())
         return INVALID_REQUEST;
 
+	// <<<--- why not ici check path trop de ../../ on sort du serveur -> 403 Forbiden
+
     for (size_t i = 0; i < uri.size(); ++i)
     {
         unsigned char c = uri[i];

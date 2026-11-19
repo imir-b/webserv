@@ -59,6 +59,9 @@ Response RequestHandler::process(const Request &request, const Config &config)
 {
 	Response response;
 
+// Check if the path is valid and if the method is allowed
+
+	// std::cout << request.getUri() << std::endl;
 	setMimeType(response, request.getUri());
 
     if (request.getMethod() == "GET")
@@ -83,7 +86,7 @@ Response RequestHandler::handleMethodNotAllowed(Response response)
     response.setHeader("Connection", "close");
     response.setHeader("Allow", "GET, POST, DELETE");
 
-    response.setBody("Method Not Allowed\n");
+    response.setBody("405 Method Not Allowed\n");
 
     return response;
 }
@@ -106,13 +109,13 @@ Response RequestHandler::handleGet(Response response, const Request &request, co
     (void) config;
 
 	std::string filePath = "www" + request.getUri();
-	if (filePath[filePath.length() - 1] == '/') {
+	std::cout << filePath << std::endl; // <<<--- debug
+	if (!filePath.empty() && filePath[filePath.length() - 1] == '/') {
 		filePath += "index.html"; // Serve index.html for directory requests
 		response.setHeader("Content-Type", "text/html");
 	}
-	// std::cout << "Requested file path: " << filePath << std::endl; // <<<--- debug
 
-	std::ifstream file(static_cast<const char *>(filePath.c_str()));
+	std::ifstream file(filePath.c_str());
 	if (file.is_open()) {
 		std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 		response.setBody(content);
