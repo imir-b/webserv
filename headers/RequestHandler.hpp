@@ -19,4 +19,6 @@ class RequestHandler
         Response handleDelete(Response responce, const Request &request, const Config &config);
         Response handleMethodNotAllowed(Response responce);
 		void setMimeType(Response &response, const string &uri);
+
+		std::map<std::string, std::string> mimeTypesTable;
 };

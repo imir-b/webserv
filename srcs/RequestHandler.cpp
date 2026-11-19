@@ -3,11 +3,33 @@
 #include "../headers/Config.hpp"
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include "../headers/RequestHandler.hpp"
 
 /* Constructor */
 
-RequestHandler::RequestHandler() {}
+RequestHandler::RequestHandler()
+{
+	std::ifstream file("mime.types");
+
+	if (!file.is_open())
+		std::cerr << "Failed to open MIME types file" << std::endl;
+
+	std::string line;
+	while (std::getline(file, line))
+	{
+		if (line.empty() || line[0] == '#')
+			continue;
+		std::stringstream ss(line);
+		std::string extension;
+		std::string mimeType;
+		if (ss >> extension >> mimeType)
+		{
+			mimeTypesTable[extension] = mimeType;
+		}
+	}
+	file.close();
+}
 
 RequestHandler::~RequestHandler() {}
 
@@ -17,25 +39,14 @@ void RequestHandler::setMimeType(Response &response, const string &uri)
 	size_t dotPos = uri.find_last_of('.');
 	if (dotPos != string::npos)
 	{
-		string extension = uri.substr(dotPos + 1);
-		if (extension == "html" || extension == "htm")
-			response.setHeader("Content-Type", "text/html");
-		else if (extension == "css")
-			response.setHeader("Content-Type", "text/css");
-		else if (extension == "js")
-			response.setHeader("Content-Type", "application/javascript");
-		else if (extension == "json")
-			response.setHeader("Content-Type", "application/json");
-		else if (extension == "png")
-			response.setHeader("Content-Type", "image/png");
-		else if (extension == "jpg" || extension == "jpeg")
-			response.setHeader("Content-Type", "image/jpeg");
-		else if (extension == "gif")
-			response.setHeader("Content-Type", "image/gif");
-		else if (extension == "txt")
-			response.setHeader("Content-Type", "text/plain");
-		else
-			response.setHeader("Content-Type", "application/octet-stream"); // Default MIME type
+		std::string extension = uri.substr(dotPos + 1);
+		std::map<std::string, std::string>::iterator it = mimeTypesTable.find(extension);
+
+		if (it != mimeTypesTable.end())
+		{
+			response.setHeader("Content-Type", it->second);
+			return;
+		}
 	}
 	else
 	{
@@ -47,6 +58,8 @@ void RequestHandler::setMimeType(Response &response, const string &uri)
 Response RequestHandler::process(const Request &request, const Config &config)
 {
 	Response response;
+
+	setMimeType(response, request.getUri());
 
     if (request.getMethod() == "GET")
         return handleGet(response, request, config);
@@ -92,47 +105,28 @@ Response RequestHandler::handleGet(Response response, const Request &request, co
 {
     (void) config;
 
-    if (request.getUri() == "/") {
-        response.setStatusCode(HTTP_OK);
-        // response.setBody("Hello World!\n");
+	std::string filePath = "www" + request.getUri();
+	if (filePath[filePath.length() - 1] == '/') {
+		filePath += "index.html"; // Serve index.html for directory requests
+		response.setHeader("Content-Type", "text/html");
+	}
+	// std::cout << "Requested file path: " << filePath << std::endl; // <<<--- debug
 
-		std::ifstream file("www/index.html");
-		if (file.is_open()) {
-			std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-			response.setBody(content);
-			// std::cout << content << "\n"; // <<<--- debug
-
-			file.close();
-		}
-		// response.setHeader("Content-Type", "text/html"); // <<<--- car index.html est de ce type mais plus tard il faut gerer en parsant l extension du fichier: c est ca le MIME type
-
-    }
-	else if (request.getUri() == "/test") {
+	std::ifstream file(static_cast<const char *>(filePath.c_str()));
+	if (file.is_open()) {
+		std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		response.setBody(content);
 		response.setStatusCode(HTTP_OK);
-		response.setBody("Test page\n");
+		file.close();
+	}
+	else {
+		response.setStatusCode(HTTP_NOT_FOUND);
 		response.setHeader("Content-Type", "text/plain");
+		response.setBody("404 Not Found\n");
 	}
-	else if (request.getUri() == "/eminem") {
-		response.setStatusCode(HTTP_OK);
-		std::ifstream file("www/eminem.png");
-		if (file.is_open()) {
-			std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-			response.setBody(content);
-			file.close();
-		}
-		response.setHeader("Content-Type", "image/png");
-	}
-    else {
-        response.setStatusCode(HTTP_NOT_FOUND);
-        response.setBody("Not Found\n");
-    }
-
     response.setHeader("Connection", "close");
-
-	std::cout << "GET A GERER\n";
-	// pour l instant on check les uri et on renvoie un fichier ou un message d erreur, mais plus tard il faudra gerer les redirections, les fichiers statiques, les fichiers dynamiques, etc.
-
-    return response;
+	// std::cout << "RESPONSE: " << response.serialize() << std::endl; // <<<--- debug
+	return response;
 }
 
 /* Handle POST request */
