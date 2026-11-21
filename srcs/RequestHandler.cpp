@@ -5,6 +5,8 @@
 #include <fstream>
 #include <sstream>
 #include "../headers/RequestHandler.hpp"
+#include <climits>
+#include <cstdlib>
 
 /* Constructor */
 
@@ -54,12 +56,31 @@ void RequestHandler::setMimeType(Response &response, const string &uri)
 	}
 }
 
+bool RequestHandler::isInsideRoot(const std::string& root, const std::string& candidatePath)
+{
+    char realRoot[PATH_MAX];
+    char realCand[PATH_MAX];
+
+    if (realpath(root.c_str(), realRoot) == NULL)
+        return false;
+    if (realpath(candidatePath.c_str(), realCand) == NULL)
+        return false;
+
+    std::string rRoot(realRoot);
+    std::string rCand(realCand);
+
+    if (rCand.compare(0, rRoot.size(), rRoot) != 0)
+        return false;
+
+    return (rCand.size() == rRoot.size()) || (rCand[rRoot.size()] == '/');
+}
+
 /* Process the client's request and prepare the HTTP response */
 Response RequestHandler::process(const Request &request, const Config &config)
 {
 	Response response;
 
-// Check if the path is valid and if the method is allowed
+// Check if the path is valid and if the method is allowed in config
 
 	// std::cout << request.getUri() << std::endl;
 	setMimeType(response, request.getUri());
@@ -108,7 +129,15 @@ Response RequestHandler::handleGet(Response response, const Request &request, co
 {
     (void) config;
 
-	std::string filePath = "www" + request.getUri();
+	std::string filePath =  config.getRoot() + request.getUri();
+	if (!isInsideRoot(config.getRoot(), filePath))
+	{
+		response.setStatusCode(HTTP_FORBIDDEN);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
+		response.setBody("403 Forbidden\n");
+		return response;
+	}
 	std::cout << filePath << std::endl; // <<<--- debug
 	if (!filePath.empty() && filePath[filePath.length() - 1] == '/') {
 		filePath += "index.html"; // Serve index.html for directory requests
