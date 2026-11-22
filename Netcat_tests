@@ -1,0 +1,23 @@
+ ===== GET =====
+
+printf "GET /eminem.png HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" | nc localhost 8080
+
+printf "GET /uploads/toto.txt HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" | nc localhost 8080
+
+ ===== POST =====
+
+printf 'POST /uploads/test.txt HTTP/1.1\r\nHost: localhost\r\nContent-Length: 11\r\nConnection: close\r\n\r\nhello world' | nc -N localhost 8080
+
+
+printf 'POST /uploads/test.txt HTTP/1.1\r\nHost: localhost\r\nContent-Length: 11\r\nConnection: close\r\n\r\nhello world' | nc -N localhost 8080
+
+printf 'POST /test.txt HTTP/1.1\r\nHost: localhost\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok' | nc -w 1 localhost 8080
+
+printf 'POST /uploads/../../outside.txt HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\nConnection: close\r\n\r\nhack' | nc -w 1 localhost 8080
+
+ ===== DELETE =====
+
+printf "DELETE /uploads/test.txt HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" | nc localhost 8080
+
+
+

@@ -173,7 +173,7 @@ Response RequestHandler::handleGet(Response response, std::string filePath, cons
 		response.setBody("403 Forbidden\n");
 		return response;
 	}
-	std::cout << filePath << std::endl; // <<<--- debug
+	// std::cout << filePath << std::endl; // <<<--- debug
 	if (!filePath.empty() && filePath[filePath.length() - 1] == '/') {
 		filePath += "index.html"; // Serve index.html for directory requests
 		response.setHeader("Content-Type", "text/html");
@@ -196,26 +196,80 @@ Response RequestHandler::handleGet(Response response, std::string filePath, cons
 	return response;
 }
 
+/* Verify if the POST target is ok */
+bool RequestHandler::isPostTargetValid(const std::string &root, const std::string &filePath)
+{
+	struct stat st;
+
+	if (stat(filePath.c_str(), &st) == 0)
+	{
+		if (S_ISDIR(st.st_mode))
+			return false; // Target is a directory
+		else if (S_ISREG(st.st_mode))
+			return isInsideRoot(root, filePath); // Target is a regular file
+	}
+	size_t lastSlashPos = filePath.find_last_of('/');
+	std::string parentDir;
+	std::string fileName;
+	if (lastSlashPos == std::string::npos)
+		parentDir = ".";
+	else
+		parentDir = filePath.substr(0, lastSlashPos);
+	if (lastSlashPos == std::string::npos)
+		fileName = filePath;
+	else
+		fileName = filePath.substr(lastSlashPos + 1);
+
+	if (parentDir.empty())
+		parentDir = "/";
+	if (fileName.empty() || fileName == "." || fileName == "..")
+		return false; // Invalid file name
+
+	return isInsideRoot(root, parentDir); // Check if the parent directory is inside the root
+}
+
 /* Handle POST request */
 Response RequestHandler::handlePost(Response response, const Request &request, std::string filePath, const Config &config)
 {
-    (void) filePath;
-
-    if (request.getBody().size() > config.getClientMaxBodySize()) {
+    if (request.getBody().size() > config.getClientMaxBodySize())
+	{
         response.setStatusCode(HTTP_PAYLOAD_TOO_LARGE);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
         response.setBody("413 Payload Too Large\n");
-    }
-    else {
-        response.setStatusCode(HTTP_OK);
-        response.setBody("POST received:\n" + request.getBody());
+		return response;
     }
 
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("Connection", "close");
+	if (!isPostTargetValid(config.getRoot(), filePath))
+	{
+		response.setStatusCode(HTTP_FORBIDDEN);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
+		response.setBody("403 Forbidden\n");
+		return response;
+	}
 
-	std::cout << "POST A GERER\n";
+	std::ofstream file(filePath.c_str(), std::ios::binary);
 
-    return response;
+	if (!file.is_open())
+	{
+		response.setStatusCode(HTTP_INTERNAL_SERVER_ERROR);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
+		response.setBody("500 Internal Server Error\n");
+		return response;
+	}
+
+	file.write(request.getBody().c_str(), request.getBody().size());
+	file.close();
+	response.setStatusCode(HTTP_CREATED);
+	response.setHeader("Content-Type", "text/plain");
+	response.setHeader("Connection", "close");
+	response.setBody("201 Created\n");
+
+	std::cout << "File created: " << filePath << "\n" + request.getBody() << std::endl; // Debug
+
+	return response;
 }
 
 /* Handle DELETE request */

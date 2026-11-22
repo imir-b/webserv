@@ -18,8 +18,10 @@ class RequestHandler
         Response handlePost(Response responce, const Request &request, std::string filePath, const Config &config);
         Response handleDelete(Response responce, std::string filePath, const Config &config);
         Response handleMethodNotAllowed(Response responce);
+
 		void setMimeType(Response &response, const string &uri);
 		bool isInsideRoot(const std::string& root, const std::string& candidatePath);
+		bool isPostTargetValid(const std::string &root, const std::string &filePath);
 
 		std::map<std::string, std::string> mimeTypesTable;
 };
