@@ -7,6 +7,7 @@
 #include "../headers/RequestHandler.hpp"
 #include <climits>
 #include <cstdlib>
+#include <sys/stat.h>
 
 /* Constructor */
 
@@ -50,12 +51,10 @@ void RequestHandler::setMimeType(Response &response, const string &uri)
 			return;
 		}
 	}
-	else
-	{
-		response.setHeader("Content-Type", "application/octet-stream"); // Default MIME type
-	}
+	response.setHeader("Content-Type", "application/octet-stream"); // Default MIME type
 }
 
+/* Check if the candidate path is inside the root directory */
 bool RequestHandler::isInsideRoot(const std::string& root, const std::string& candidatePath)
 {
     char realRoot[PATH_MAX];
@@ -75,24 +74,63 @@ bool RequestHandler::isInsideRoot(const std::string& root, const std::string& ca
     return (rCand.size() == rRoot.size()) || (rCand[rRoot.size()] == '/');
 }
 
+/* find the longest matching location for the given URI */
+static const LocationConfig *findLocation(const Config &config, const std::string &uri)
+{
+    const std::vector<LocationConfig> &locs = config.getLocations();
+    const LocationConfig *best = NULL;
+
+    for (size_t i = 0; i < locs.size(); ++i)
+    {
+        const std::string &p = locs[i].getPath();
+        if (uri.compare(0, p.size(), p) == 0)
+        {
+            if (p == "/" || uri.size() == p.size() || uri[p.size()] == '/')
+            {
+                if (best == NULL || p.size() > best->getPath().size())
+                    best = &locs[i];
+            }
+        }
+    }
+    return best;
+}
+
+/* Check if the request method is allowed for the given location */
+static bool methodAllowed(const LocationConfig *loc, const std::string &method)
+{
+    if (!loc)
+        return false;
+
+    const std::vector<std::string> &methods = loc->getAllowedMethods();
+    for (size_t i = 0; i < methods.size(); ++i)
+    {
+        if (methods[i] == method)
+            return true;
+    }
+    return false;
+}
+
 /* Process the client's request and prepare the HTTP response */
 Response RequestHandler::process(const Request &request, const Config &config)
 {
 	Response response;
 
-// Check if the path is valid and if the method is allowed in config
+	const LocationConfig *loc = findLocation(config, request.getUri());
 
+	if (!methodAllowed(loc, request.getMethod()))
+		return handleMethodNotAllowed(response);
 	// std::cout << request.getUri() << std::endl;
+	std::string filePath =  config.getRoot() + request.getUri();
 	setMimeType(response, request.getUri());
 
     if (request.getMethod() == "GET")
-        return handleGet(response, request, config);
+        return handleGet(response, filePath, config);
 
     if (request.getMethod() == "POST")
-        return handlePost(response, request, config);
+        return handlePost(response, request, filePath, config);
 
     if (request.getMethod() == "DELETE")
-        return handleDelete(response, request, config);
+        return handleDelete(response, filePath, config);
 
     return handleMethodNotAllowed(response);
 }
@@ -125,11 +163,8 @@ Response RequestHandler::handleMethodNotAllowed(Response response)
 // 500 Internal Server Error	Erreur interne
 
 /* Handle GET request */
-Response RequestHandler::handleGet(Response response, const Request &request, const Config &config)
+Response RequestHandler::handleGet(Response response, std::string filePath, const Config &config)
 {
-    (void) config;
-
-	std::string filePath =  config.getRoot() + request.getUri();
 	if (!isInsideRoot(config.getRoot(), filePath))
 	{
 		response.setStatusCode(HTTP_FORBIDDEN);
@@ -162,9 +197,9 @@ Response RequestHandler::handleGet(Response response, const Request &request, co
 }
 
 /* Handle POST request */
-Response RequestHandler::handlePost(Response response, const Request &request, const Config &config)
+Response RequestHandler::handlePost(Response response, const Request &request, std::string filePath, const Config &config)
 {
-    (void) config;
+    (void) filePath;
 
     if (request.getBody().size() > config.getClientMaxBodySize()) {
         response.setStatusCode(HTTP_PAYLOAD_TOO_LARGE);
@@ -184,18 +219,41 @@ Response RequestHandler::handlePost(Response response, const Request &request, c
 }
 
 /* Handle DELETE request */
-Response RequestHandler::handleDelete(Response response, const Request &request, const Config &config)
+Response RequestHandler::handleDelete(Response response, std::string filePath, const Config &config)
 {
-    (void)request;
-    (void)config;
+    struct stat st;
 
-    response.setStatusCode(HTTP_NOT_IMPLEMENTED);
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("Connection", "close");
+    if (!isInsideRoot(config.getRoot(), filePath) || S_ISDIR(st.st_mode))
+	{
+		response.setStatusCode(HTTP_FORBIDDEN);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
+		response.setBody("403 Forbidden\n");
+		return response;
+    }
 
-    response.setBody("DELETE is not implemented yet\n");
+    if (stat(filePath.c_str(), &st) != 0)
+	{
+		response.setStatusCode(HTTP_NOT_FOUND);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
+		response.setBody("404 Not Found\n");
+		return response;
+    }
 
-	std::cout << "DELETE A GERER\n";
+    if (std::remove(filePath.c_str()) != 0)
+	{
+		response.setStatusCode(HTTP_INTERNAL_SERVER_ERROR);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
+		response.setBody("500 Internal Server Error\n");
+		return response;
+    }
+
+	response.setStatusCode(HTTP_OK);
+	response.setHeader("Content-Type", "text/plain");
+	response.setHeader("Connection", "close");
+	response.setBody("File deleted successfully\n");
 
     return response;
 }
