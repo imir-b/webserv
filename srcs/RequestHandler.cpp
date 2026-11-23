@@ -74,6 +74,38 @@ bool RequestHandler::isInsideRoot(const std::string& root, const std::string& ca
     return (rCand.size() == rRoot.size()) || (rCand[rRoot.size()] == '/');
 }
 
+/* Verify if the target path is ok */
+bool RequestHandler::isPathTargetValid(const std::string &root, const std::string &filePath)
+{
+	struct stat st;
+
+	if (stat(filePath.c_str(), &st) == 0)
+	{
+		if (S_ISDIR(st.st_mode))
+			return false; // Target is a directory
+		else if (S_ISREG(st.st_mode))
+			return isInsideRoot(root, filePath); // Target is a regular file
+	}
+	size_t lastSlashPos = filePath.find_last_of('/');
+	std::string parentDir;
+	std::string fileName;
+	if (lastSlashPos == std::string::npos)
+		parentDir = ".";
+	else
+		parentDir = filePath.substr(0, lastSlashPos);
+	if (lastSlashPos == std::string::npos)
+		fileName = filePath;
+	else
+		fileName = filePath.substr(lastSlashPos + 1);
+
+	if (parentDir.empty())
+		parentDir = "/";
+	if (fileName.empty() || fileName == "." || fileName == "..")
+		return false; // Invalid file name
+
+	return isInsideRoot(root, parentDir); // Check if the parent directory is inside the root
+}
+
 /* find the longest matching location for the given URI */
 static const LocationConfig *findLocation(const Config &config, const std::string &uri)
 {
@@ -165,18 +197,37 @@ Response RequestHandler::handleMethodNotAllowed(Response response)
 /* Handle GET request */
 Response RequestHandler::handleGet(Response response, std::string filePath, const Config &config)
 {
-	if (!isInsideRoot(config.getRoot(), filePath))
+	struct stat st;
+	if (!filePath.empty() && (filePath[filePath.length() - 1] == '/' || (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)))) {
+		if (filePath[filePath.length() - 1] != '/')
+			filePath += '/';
+		filePath += "index.html"; // Serve index.html for directory requests
+		response.setHeader("Content-Type", "text/html");
+	}
+
+	if (stat(filePath.c_str(), &st) != 0)
 	{
+		if (!isPathTargetValid(config.getRoot(), filePath))
+		{
+			response.setStatusCode(HTTP_FORBIDDEN);
+			response.setHeader("Content-Type", "text/plain");
+			response.setHeader("Connection", "close");
+			response.setBody("403 Forbidden\n");
+			return response;
+		}
+		response.setStatusCode(HTTP_NOT_FOUND);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
+		response.setBody("404 Not Found\n");
+		return response;
+	}
+
+	if (!isInsideRoot(config.getRoot(), filePath)) {
 		response.setStatusCode(HTTP_FORBIDDEN);
 		response.setHeader("Content-Type", "text/plain");
 		response.setHeader("Connection", "close");
 		response.setBody("403 Forbidden\n");
 		return response;
-	}
-	// std::cout << filePath << std::endl; // <<<--- debug
-	if (!filePath.empty() && filePath[filePath.length() - 1] == '/') {
-		filePath += "index.html"; // Serve index.html for directory requests
-		response.setHeader("Content-Type", "text/html");
 	}
 
 	std::ifstream file(filePath.c_str());
@@ -187,45 +238,13 @@ Response RequestHandler::handleGet(Response response, std::string filePath, cons
 		file.close();
 	}
 	else {
-		response.setStatusCode(HTTP_NOT_FOUND);
+		response.setStatusCode(HTTP_INTERNAL_SERVER_ERROR);
 		response.setHeader("Content-Type", "text/plain");
-		response.setBody("404 Not Found\n");
+		response.setBody("500 Internal Server Error\n");
 	}
     response.setHeader("Connection", "close");
 	// std::cout << "RESPONSE: " << response.serialize() << std::endl; // <<<--- debug
 	return response;
-}
-
-/* Verify if the POST target is ok */
-bool RequestHandler::isPostTargetValid(const std::string &root, const std::string &filePath)
-{
-	struct stat st;
-
-	if (stat(filePath.c_str(), &st) == 0)
-	{
-		if (S_ISDIR(st.st_mode))
-			return false; // Target is a directory
-		else if (S_ISREG(st.st_mode))
-			return isInsideRoot(root, filePath); // Target is a regular file
-	}
-	size_t lastSlashPos = filePath.find_last_of('/');
-	std::string parentDir;
-	std::string fileName;
-	if (lastSlashPos == std::string::npos)
-		parentDir = ".";
-	else
-		parentDir = filePath.substr(0, lastSlashPos);
-	if (lastSlashPos == std::string::npos)
-		fileName = filePath;
-	else
-		fileName = filePath.substr(lastSlashPos + 1);
-
-	if (parentDir.empty())
-		parentDir = "/";
-	if (fileName.empty() || fileName == "." || fileName == "..")
-		return false; // Invalid file name
-
-	return isInsideRoot(root, parentDir); // Check if the parent directory is inside the root
 }
 
 /* Handle POST request */
@@ -240,7 +259,7 @@ Response RequestHandler::handlePost(Response response, const Request &request, s
 		return response;
     }
 
-	if (!isPostTargetValid(config.getRoot(), filePath))
+	if (!isPathTargetValid(config.getRoot(), filePath))
 	{
 		response.setStatusCode(HTTP_FORBIDDEN);
 		response.setHeader("Content-Type", "text/plain");
@@ -277,21 +296,29 @@ Response RequestHandler::handleDelete(Response response, std::string filePath, c
 {
     struct stat st;
 
+    if (stat(filePath.c_str(), &st) != 0)
+	{
+		if (!isPathTargetValid(config.getRoot(), filePath))
+		{
+			response.setStatusCode(HTTP_FORBIDDEN);
+			response.setHeader("Content-Type", "text/plain");
+			response.setHeader("Connection", "close");
+			response.setBody("403 Forbidden\n");
+			return response;
+		}
+		response.setStatusCode(HTTP_NOT_FOUND);
+		response.setHeader("Content-Type", "text/plain");
+		response.setHeader("Connection", "close");
+		response.setBody("404 Not Found\n");
+		return response;
+    }
+
     if (!isInsideRoot(config.getRoot(), filePath) || S_ISDIR(st.st_mode))
 	{
 		response.setStatusCode(HTTP_FORBIDDEN);
 		response.setHeader("Content-Type", "text/plain");
 		response.setHeader("Connection", "close");
 		response.setBody("403 Forbidden\n");
-		return response;
-    }
-
-    if (stat(filePath.c_str(), &st) != 0)
-	{
-		response.setStatusCode(HTTP_NOT_FOUND);
-		response.setHeader("Content-Type", "text/plain");
-		response.setHeader("Connection", "close");
-		response.setBody("404 Not Found\n");
 		return response;
     }
 

@@ -21,7 +21,7 @@ class RequestHandler
 
 		void setMimeType(Response &response, const string &uri);
 		bool isInsideRoot(const std::string& root, const std::string& candidatePath);
-		bool isPostTargetValid(const std::string &root, const std::string &filePath);
+		bool isPathTargetValid(const std::string &root, const std::string &filePath);
 
 		std::map<std::string, std::string> mimeTypesTable;
 };
